@@ -22,6 +22,7 @@ swift build -c release   # chỉ biên dịch
 - Chỉ cần Command Line Tools; không dùng Xcode project.
 - Build phải **0 warning**. Giữ `swift-tools-version: 5.9` (Swift 5 language mode).
 - Log runtime: `/tmp/umac.log` (`appLog()` trong `Sources/Logger.swift`).
+- Icon app được vẽ bằng code: sửa `scripts/make-icon.swift` rồi chạy `swift scripts/make-icon.swift` để tạo lại `Resources/AppIcon.icns` (thêm đường dẫn `.png` để chỉ xuất ảnh xem trước 1024px).
 - `build.sh` tự gỡ `HyperMac.app`/`DisplayControl.app` cũ và chép `LICENSE`, `THIRD_PARTY_NOTICES.md`, `GPL-2.0.txt` vào gói app.
 
 ## 3. Bản đồ mã nguồn

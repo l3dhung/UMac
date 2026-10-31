@@ -10,8 +10,6 @@ UMac is a fork of **HyperMac** v1.6.0 by Nguyễn Khắc Đại
 `github.com/mrgoose000000-gif/HyperMac` and stated by its README to be released
 under the MIT License. The original copyright notice is retained in `LICENSE`.
 
-The app icon (`Resources/AppIcon.icns`) comes from HyperMac.
-
 ## `Resources/smc` — SMC command-line tool (GPL-2.0)
 
 `Resources/smc` is a prebuilt arm64 binary inherited from HyperMac. It matches
