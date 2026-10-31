@@ -62,6 +62,8 @@ public struct MainView: View {
                             windowManager: windowManager,
                             clipboardManager: clipboardManager
                         )
+                    case 3:
+                        CleanerTabView()
                     default:
                         DisplaysTabView(
                             displayManager: displayManager,
@@ -269,8 +271,9 @@ struct TopTabBar: View {
     var body: some View {
         HStack(spacing: 4) {
             tabButton(index: 0, title: "Màn hình", icon: "display")
-            tabButton(index: 1, title: "Pin & Phần cứng", icon: "shield.checkered")
-            tabButton(index: 2, title: "Phím tắt & Cửa sổ", icon: "keyboard")
+            tabButton(index: 1, title: "Phần cứng", icon: "shield.checkered")
+            tabButton(index: 2, title: "Phím tắt", icon: "keyboard")
+            tabButton(index: 3, title: "Dọn dẹp", icon: "sparkles")
         }
         .padding(3)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))

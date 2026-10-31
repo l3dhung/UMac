@@ -55,7 +55,7 @@ Sau đó mở HyperMac bình thường từ Spotlight (`Cmd + Space` gõ `HyperM
 Để các tính năng chia cửa sổ và phím tắt hoạt động mượt mà, hãy bật 2 quyền sau:
 1. **Trợ năng (Accessibility):** Vào *Cài đặt hệ thống ➔ Quyền riêng tư & Bảo mật ➔ Trợ năng* $\rightarrow$ Gạt bật **HyperMac**. (Dùng để nhận phím tắt chia cửa sổ, F1/F2 và AltTab).
 2. **Ghi màn hình (Screen Recording - Tùy chọn):** Vào *Quyền riêng tư & Bảo mật ➔ Ghi màn hình & Âm thanh hệ thống* $\rightarrow$ Gạt bật **HyperMac** để hiển thị ảnh chụp nội dung thực tế trong thẻ chuyển tab AltTab.
-3. **Quyền điều khiển sạc pin SMC:** Khi bật nút *"Bật bảo vệ & Khóa sạc 80%"*, app sẽ hỏi xác nhận Touch ID/mật khẩu 1 lần duy nhất để cài đặt helper điều khiển nguồn an toàn.
+3. **Quyền điều khiển sạc pin SMC (chỉ Apple Silicon):** Trong tab *Phần cứng*, bấm **Cấp quyền** và nhập mật khẩu 1 lần. Helper chỉ cho đúng tài khoản của bạn chạy 3 lệnh bật/tắt/đọc trạng thái sạc. Nếu app báo *"helper cũ không an toàn"*, bấm **Gỡ ngay**.
 
 > 💡 **Sau khi cập nhật lên bản mới:** HyperMac tự kiểm tra và khôi phục quyền Trợ năng. Nếu macOS hiện hộp thoại xin quyền, bạn chỉ cần bật lại **HyperMac** trong *Trợ năng* — không cần xoá app khỏi danh sách rồi thêm lại. Trường hợp hiếm vẫn bị kẹt, xem [mục 5 trong FAQ](#-câu-hỏi-thường-gặp-faq).
 
@@ -114,6 +114,15 @@ Bảo vệ phần cứng tối đa, đặc biệt phù hợp cho các dòng MacB
 ### 🖥️ 5. Màn Hình Ngoài & Chỉnh Độ Sáng (Thay thế BetterDisplay)
 * **Chỉnh sáng màn hình ngoài bằng `F1 / F2`:** Bấm phím F1/F2 trên bàn phím Mac để tăng/giảm độ sáng màn hình rời thông qua chuẩn phần cứng DDC/CI.
 * **Ngắt mềm màn ngoài (Software Sleep):** Tắt tạm thời tín hiệu màn ngoài khi không dùng mà không cần rút dây cáp Type-C/HDMI.
+
+---
+
+### 🧹 Dọn Dẹp Máy (Tương tự CleanMyMac)
+Tab **Dọn dẹp** trên menu HyperMac:
+* **Rác hệ thống:** bộ nhớ đệm, nhật ký, cache Xcode/Simulator, npm, Gradle. Không đụng dữ liệu của Apple; app đang chạy được tự bỏ chọn.
+* **Gỡ ứng dụng:** gỡ app kèm dữ liệu sót lại trong `~/Library` (Application Support, Caches, Preferences, Containers...).
+* **File lớn:** tìm file > 100 MB / 500 MB / 1 GB / 5 GB trong thư mục người dùng bằng Spotlight.
+* **An toàn:** mọi thứ chỉ được **chuyển vào Thùng rác** — vẫn khôi phục được bằng *Đưa trở lại* cho tới khi bạn dọn Thùng rác.
 
 ---
 

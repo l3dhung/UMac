@@ -46,7 +46,9 @@ swift build -c release
 | `Sources/AltTabOverlayView.swift` | UI HUD AltTab |
 | `Sources/ThermalManager.swift` | Đọc nhiệt độ HID/PMU + trạng thái thermal (KHÔNG điều khiển quạt) |
 | `Sources/DiskSpeedManager.swift` | Đo tốc độ đọc/ghi ổ vật lý (IOKit), interface LAN cho NAS, I/O theo tiến trình |
-| `Sources/BatteryManager.swift` | Khóa sạc 80%, helper SMC |
+| `Sources/BatteryManager.swift` | Khóa sạc 80%, cài/gỡ helper SMC (chỉ Apple Silicon) |
+| `Sources/CleanerManager.swift` | Dọn rác, gỡ app sạch, tìm file lớn — chỉ chuyển vào Thùng rác |
+| `Sources/CleanerViews.swift` | UI tab "Dọn dẹp" |
 | `Sources/DisplayManager.swift` | Độ sáng, DDC/CI, màn hình ảo |
 | `Sources/VirtualDisplayManager.swift` + `VirtualDisplayBridge/` | Cầu nối Objective-C cho màn hình ảo |
 | `Sources/CaffeinateManager.swift` | Chống sleep màn hình |
@@ -176,6 +178,25 @@ swift build -c release
   badge + nút tải trong `README.md`.
 - Thêm changelog v1.6.0 trong `README.md`.
 - Cần tạo tag `v1.6.0` và push để GitHub Actions tạo release khớp `version.json`.
+
+## 6.1. Bảo mật helper, updater & tab Dọn dẹp (nhánh `security-and-cleaner`)
+
+### Helper khóa sạc
+- Cài vào `/Library/PrivilegedHelperTools/com.opensource.hypermac/` (root:wheel), **không** dùng `/usr/local/bin` (có thể ghi bằng user → leo thang root).
+- Sudoers `/etc/sudoers.d/hypermac_power`: chỉ user đã cài, chỉ `status | charge-on | charge-off`, kiểm tra bằng `visudo -cf` trước khi cài.
+- `install-helper.sh install <user> <smc> <helper>` / `uninstall`; cả hai đều gỡ sudoers cũ `displaycontrol_power` (`ALL ALL NOPASSWD`).
+- Script root không còn lệnh quạt, không tìm `smc` theo PATH hay thư mục của user.
+- Binary `smc` chỉ có arm64 → trên Intel UI báo "chưa hỗ trợ", không cài helper.
+
+### Updater
+- Bản tải về phải thỏa Designated Requirement của app đang chạy (`SecStaticCodeCheckValidity`): cùng bundle ID + cùng chứng chỉ. Bản build ad-hoc sẽ không tự cập nhật — chủ ý.
+- File tạm nằm trong `FileManager.temporaryDirectory/HyperMacUpdate` (quyền 700), không dùng `/tmp` chung.
+
+### Tab Dọn dẹp
+- **Rác hệ thống:** `~/Library/Caches`, `~/Library/Logs`, DerivedData / CoreSimulator Caches / iOS DeviceSupport, npm, Gradle, `~/.cache` (mặc định không chọn). Bỏ qua `com.apple.*` và cache dịch vụ Apple không tiền tố; cache của app đang chạy mặc định không chọn.
+- **Gỡ ứng dụng:** quét `/Applications`, `~/Applications` (bỏ app Apple). File sót chỉ khớp **chính xác** bundle ID hoặc tên app (≥ 4 ký tự) trong `~/Library`. Không gỡ khi app đang chạy.
+- **File lớn:** `mdfind` theo kích thước, bỏ `~/Library`, thư mục ẩn, symlink và file nằm trong gói (`.app`, `.photoslibrary`, `.framework`...). Không chọn sẵn.
+- Xóa = `NSWorkspace.recycle` (vào Thùng rác, khôi phục được). Không bao giờ xóa vĩnh viễn hay dùng root.
 
 ## 7. Chứng chỉ ký cố định (bắt buộc cho TCC)
 
