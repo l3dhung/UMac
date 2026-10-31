@@ -1,6 +1,6 @@
 # ⚡ UMac — Tiện Ích Tất-Cả-Trong-Một Cho Mac (Apple Silicon & Intel)
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/l3dhung/UMac/releases/latest)
+[![Version](https://img.shields.io/badge/version-v1.0.1-blue.svg)](https://github.com/l3dhung/UMac/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-black.svg)](https://github.com/l3dhung/UMac)
 [![Chip](https://img.shields.io/badge/chip-Apple%20Silicon%20%7C%20Intel-brightgreen.svg)](https://github.com/l3dhung/UMac)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
@@ -19,7 +19,7 @@
 
 Bấm vào nút bên dưới để tải về phiên bản mới nhất:
 
-[![Download UMac](<https://img.shields.io/badge/📥_TẢI_VỀ-UMac.zip_(v1.0.0)-2563EB?style=for-the-badge&logo=apple&logoColor=white>)](https://github.com/l3dhung/UMac/releases/latest/download/UMac.zip)
+[![Download UMac](<https://img.shields.io/badge/📥_TẢI_VỀ-UMac.zip_(v1.0.1)-2563EB?style=for-the-badge&logo=apple&logoColor=white>)](https://github.com/l3dhung/UMac/releases/latest/download/UMac.zip)
 
 _(Hoặc vào trang [GitHub Releases](https://github.com/l3dhung/UMac/releases) để xem danh sách tất cả các bản phát hành)._
 
@@ -239,6 +239,10 @@ cd UMac
 ---
 
 ## 📝 Nhật Ký Phiên Bản (Changelog)
+
+### [v1.0.1] — 2026-10-31
+
+- 🎨 **Icon mới:** chữ "U" vươn thành mũi tên đi lên trên khuôn bo góc chuẩn macOS, vẽ vector ở mọi kích thước nên rõ nét cả ở cỡ 16 px.
 
 ### [v1.0.0] — 2026-10-31
 

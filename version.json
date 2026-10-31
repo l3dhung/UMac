@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "name": "UMac v1.0.0",
-  "notes": "Bản phát hành đầu tiên của UMac (fork từ HyperMac v1.6.0).\n- 🧹 Tab Dọn dẹp: rác hệ thống, gỡ app sạch, tìm file lớn — chỉ chuyển vào Thùng rác.\n- 💻 Hỗ trợ Mac Intel: % và sức khỏe pin, 30+ cảm biến nhiệt, tốc độ quạt, công suất qua SMC.\n- 🔐 Helper khóa sạc an toàn hơn (sudoers giới hạn theo user, thư mục root).\n- 🛡️ Bộ tự cập nhật kiểm tra chữ ký trước khi cài.",
-  "download_url": "https://github.com/l3dhung/UMac/releases/download/v1.0.0/UMac.zip",
-  "html_url": "https://github.com/l3dhung/UMac/releases/tag/v1.0.0"
+  "version": "1.0.1",
+  "name": "UMac v1.0.1",
+  "notes": "🎨 Icon mới: chữ \"U\" vươn thành mũi tên đi lên trên khuôn bo góc chuẩn macOS, rõ nét ở mọi kích thước.",
+  "download_url": "https://github.com/l3dhung/UMac/releases/download/v1.0.1/UMac.zip",
+  "html_url": "https://github.com/l3dhung/UMac/releases/tag/v1.0.1"
 }
