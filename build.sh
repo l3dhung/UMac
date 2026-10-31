@@ -16,36 +16,27 @@ sleep 0.5
 
 # ── Step 1: Build (mặc định: kiến trúc của máy đang build / tuỳ chọn: --universal) ──
 BUILD_UNIVERSAL=false
+NO_RUN=false
 for arg in "$@"; do
-    if [ "$arg" = "--universal" ]; then
-        BUILD_UNIVERSAL=true
-    fi
+    case "$arg" in
+        --universal) BUILD_UNIVERSAL=true ;;
+        --no-run) NO_RUN=true ;;
+    esac
 done
 
 if [ "$BUILD_UNIVERSAL" = "true" ]; then
-    echo "🔨 Building UMac (Release - Universal 2: arm64 + x86_64)..."
-    mkdir -p .build/bin_arm64 .build/bin_x86_64 .build/release
-    echo "  -> Compiling arm64 (Apple Silicon)..."
-    swift build -c release --triple arm64-apple-macosx >/dev/null 2>&1 || swift build -c release
-    if [ -f ".build/out/Products/Release/UMac" ]; then
-        cp .build/out/Products/Release/UMac .build/bin_arm64/UMac
-    elif [ -f ".build/release/UMac" ]; then
-        cp .build/release/UMac .build/bin_arm64/UMac
-    fi
-
-    echo "  -> Compiling x86_64 (Intel)..."
-    swift build -c release --triple x86_64-apple-macosx >/dev/null 2>&1 || true
-    if [ -f ".build/out/Products/Release/UMac" ]; then
-        cp .build/out/Products/Release/UMac .build/bin_x86_64/UMac
-    fi
-
-    BINARY=".build/release/UMac"
-    if [ -f ".build/bin_arm64/UMac" ] && [ -f ".build/bin_x86_64/UMac" ]; then
-        echo "  -> Merging with lipo (Universal 2)..."
-        lipo -create .build/bin_arm64/UMac .build/bin_x86_64/UMac -output "$BINARY"
-    elif [ -f ".build/bin_arm64/UMac" ]; then
-        cp .build/bin_arm64/UMac "$BINARY"
-    fi
+    # Bản phát hành: một binary chạy được trên cả Apple Silicon lẫn Intel.
+    echo "🔨 Building UMac (Universal: arm64 + x86_64)..."
+    SLICES=()
+    for ARCH in arm64 x86_64; do
+        TRIPLE="${ARCH}-apple-macosx14.0"
+        echo "  -> ${ARCH}..."
+        swift build -c release --triple "$TRIPLE"
+        SLICES+=("$(swift build -c release --triple "$TRIPLE" --show-bin-path)/UMac")
+    done
+    BINARY=".build/universal/UMac"
+    mkdir -p .build/universal
+    lipo -create "${SLICES[@]}" -output "$BINARY"
 else
     echo "⚡ Building UMac ($(uname -m))..."
     swift build -c release
@@ -154,7 +145,7 @@ echo "📦 Packaging ${BUILD_DIR}/UMac.zip for distribution..."
 COPYFILE_DISABLE=1 ditto -c -k --norsrc --keepParent "${APP_DIR}" "${BUILD_DIR}/UMac.zip"
 echo "✅ Package created: ${BUILD_DIR}/UMac.zip"
 
-if [ "$CI" = "true" ] || [ "$1" = "--no-run" ]; then
+if [ "${CI:-}" = "true" ] || [ "$NO_RUN" = "true" ]; then
     echo "📦 CI build completed. Artifact is ready at: ${BUILD_DIR}/UMac.zip"
     exit 0
 fi

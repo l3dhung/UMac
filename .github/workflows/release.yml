@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build & Release (Apple Silicon)
+    name: Build & Release (Universal)
     runs-on: macos-14
     steps:
       - name: Checkout Repository
@@ -127,11 +127,14 @@ jobs:
           esac
 
       - name: Compile and Package UMac Bundle
-        run: ./build.sh --no-run
+        run: ./build.sh --no-run --universal
         env:
           CI: true
           UMAC_SIGN_IDENTITY: UMac Self-Signed
           UMAC_SIGN_KEYCHAIN: ${{ runner.temp }}/umac-signing.keychain-db
+
+      - name: Verify Universal Binary
+        run: lipo build/UMac.app/Contents/MacOS/UMac -verify_arch arm64 x86_64
 
       - name: Verify Code Signature
         if: steps.signing.outputs.signed == 'true'

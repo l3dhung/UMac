@@ -16,6 +16,7 @@
 swift build -c release   # chỉ biên dịch
 ./build.sh --no-run      # build + đóng gói build/UMac.app + build/UMac.zip, không cài
 ./build.sh               # build + cài /Applications/UMac.app + chạy (tắt UMac đang chạy trước)
+./build.sh --no-run --universal   # bản phát hành: binary arm64 + x86_64 (CI dùng lệnh này)
 ```
 
 - Chỉ cần Command Line Tools; không dùng Xcode project.
