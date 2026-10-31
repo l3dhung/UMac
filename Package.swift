@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "HyperMac",
+    name: "UMac",
     platforms: [.macOS(.v14)],
     targets: [
         .target(
@@ -11,7 +11,7 @@ let package = Package(
             publicHeadersPath: "include"
         ),
         .executableTarget(
-            name: "HyperMac",
+            name: "UMac",
             dependencies: ["VirtualDisplayBridge"],
             path: "Sources",
             exclude: ["VirtualDisplayBridge"],

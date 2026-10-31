@@ -64,7 +64,7 @@ public class CaffeinateManager: ObservableObject {
 
         if assertionID == 0 {
             let type = kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString
-            let reason = "HyperMac Keep-Awake (Anti-Sleep)" as CFString
+            let reason = "UMac Keep-Awake (Anti-Sleep)" as CFString
             let result = IOPMAssertionCreateWithName(
                 type,
                 IOPMAssertionLevel(kIOPMAssertionLevelOn),

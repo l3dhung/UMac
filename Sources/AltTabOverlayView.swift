@@ -53,7 +53,7 @@ public struct AltTabOverlayView: View {
                 Image(systemName: "command")
                     .font(.system(size: 10.5, weight: .bold))
                     .foregroundStyle(Color.cyan)
-                Text("HYPERMAC")
+                Text("UMAC")
                     .font(.system(size: 10, weight: .heavy, design: .rounded))
                     .foregroundStyle(.primary)
             }

@@ -165,7 +165,7 @@ private class AppleSiliconHIDReader {
 
 /// Reads Apple Silicon HID/PMU temperature sensors and exposes them to the UI.
 ///
-/// NOTE: Fan control was intentionally removed in v1.5.2. HyperMac no longer
+/// NOTE: Fan control was intentionally removed in v1.5.2. UMac no longer
 /// writes SMC fan keys or installs a privileged helper for fan speed changes.
 @MainActor
 public class ThermalManager: ObservableObject {
@@ -222,7 +222,7 @@ public class ThermalManager: ObservableObject {
     private lazy var hidReader = AppleSiliconHIDReader()
     private lazy var smcReader = IntelSMCReader()
     /// Lần đọc SMC đầu tiên phải duyệt ~1000 khóa (~0.3s) → chạy nền, không chặn UI.
-    private let smcQueue = DispatchQueue(label: "hypermac.smc", qos: .utility)
+    private let smcQueue = DispatchQueue(label: "umac.smc", qos: .utility)
     private var isSMCReadInFlight = false
     private var pollTimer: Timer?
 

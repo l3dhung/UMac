@@ -270,7 +270,7 @@ public class DisplayManager: ObservableObject {
         let vendor = CGDisplayVendorNumber(displayID)
         let model  = CGDisplayModelNumber(displayID)
         if (vendor == 0x1234 && model == 0x5678) || (VirtualDisplayManager.shared.isVirtualDisplayActive && displayID == VirtualDisplayManager.shared.virtualDisplayID) {
-            return "Màn hình ảo (HyperMac)"
+            return "Màn hình ảo (UMac)"
         }
 
         // 1. Try Apple Silicon IOKit connection manager first

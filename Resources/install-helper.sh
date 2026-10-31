@@ -5,14 +5,17 @@
 set -euo pipefail
 PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
-DEST_DIR="/Library/PrivilegedHelperTools/com.opensource.hypermac"
-HELPER="$DEST_DIR/hypermac-power"
-SUDOERS="/etc/sudoers.d/hypermac_power"
+DEST_DIR="/Library/PrivilegedHelperTools/com.l3dhung.umac"
+HELPER="$DEST_DIR/umac-power"
+SUDOERS="/etc/sudoers.d/umac_power"
 
 remove_legacy() {
-    # Bản ≤ v1.6.0 cài sudoers "ALL ALL NOPASSWD" vào thư mục có thể ghi bằng user → gỡ bỏ.
+    # HyperMac ≤ v1.6.0 cài sudoers "ALL ALL NOPASSWD" vào thư mục có thể ghi bằng user → gỡ bỏ.
     rm -f /etc/sudoers.d/displaycontrol_power
     rm -f /usr/local/bin/displaycontrol-power /usr/local/bin/displaycontrol-smc
+    # Helper của HyperMac (tên cũ của UMac).
+    rm -f /etc/sudoers.d/hypermac_power
+    rm -rf /Library/PrivilegedHelperTools/com.opensource.hypermac
 }
 
 case "${1:-}" in
@@ -39,7 +42,7 @@ case "${1:-}" in
         install -m 755 -o root -g wheel "$SRC_SMC" "$DEST_DIR/smc"
         install -m 755 -o root -g wheel "$SRC_HELPER" "$HELPER"
 
-        TMP_SUDOERS="$(mktemp /tmp/hypermac_sudoers.XXXXXX)"
+        TMP_SUDOERS="$(mktemp /tmp/umac_sudoers.XXXXXX)"
         cat > "$TMP_SUDOERS" <<SUDO
 $USER_NAME ALL = (root) NOPASSWD: $HELPER status, $HELPER charge-on, $HELPER charge-off
 SUDO

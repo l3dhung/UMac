@@ -28,7 +28,7 @@ public class ProcessEnergyManager: ObservableObject {
     private var timer: Timer?
 
     private let ignoredNames: Set<String> = [
-        "kernel_task", "launchd", "WindowServer", "sysmond", "HyperMac",
+        "kernel_task", "launchd", "WindowServer", "sysmond", "UMac",
         "Activity Monitor", "coreaudiod", "loginwindow", "fseventsd",
         "distnoted", "powerd", "opendirectoryd", "trustd", "UserEventAgent",
         "sandboxd", "diskarbitrationd", "mds", "mds_stores", "mdworker",

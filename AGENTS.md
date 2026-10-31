@@ -1,12 +1,12 @@
-# AGENTS.md — HyperMac (DisplayControl)
+# AGENTS.md — UMac
 
-> Tài liệu dành cho AI coding agent (Antigravity IDE, OpenCode, Cursor, Claude Code…) đọc trước khi chỉnh sửa dự án. Cập nhật lần cuối: **2026-10-29 (v1.6.0)**.
+> Tài liệu dành cho AI coding agent (Antigravity IDE, OpenCode, Cursor, Claude Code…) đọc trước khi chỉnh sửa dự án. Cập nhật lần cuối: **2026-10-31 (v1.0.0)**. UMac là fork của HyperMac v1.6.0; các mục 5–6 ghi lịch sử từ HyperMac.
 
 ## 1. Tổng quan
 
-- **HyperMac** là app menu bar thuần Swift cho macOS 14+ (Apple Silicon), dùng SwiftPM + AppKit + SwiftUI.
-- Thư mục làm việc: `/Users/khacdai24/.gemini/antigravity-ide/scratch/DisplayControl`.
-- Bundle ID: `com.opensource.hypermac`, tên app: `HyperMac`, chạy ẩn Dock (`LSUIElement`).
+- **UMac** là app menu bar thuần Swift cho macOS 14+ (Apple Silicon & Intel), dùng SwiftPM + AppKit + SwiftUI.
+- Giấy phép: MIT (`LICENSE`, giữ bản quyền HyperMac gốc). `Resources/smc` là GPL-2.0 — xem `THIRD_PARTY_NOTICES.md`; không gộp nó vào MIT.
+- Bundle ID: `com.l3dhung.umac`, tên app: `UMac`, chạy ẩn Dock (`LSUIElement`).
 - Tính năng: chia cửa sổ (Rectangle), AltTab, lịch sử Clipboard, khóa sạc 80%, chỉnh sáng màn ngoài, chống sleep, đo nhiệt độ.
 - **Fan Control đã bị gỡ bỏ hoàn toàn từ v1.5.2.** Không thêm lại logic ghi SMC/điều khiển quạt trừ khi người dùng yêu cầu rõ ràng.
 
@@ -19,14 +19,14 @@ swift build -c release
 # Build + đóng gói .app + .zip, KHÔNG cài vào /Applications
 ./build.sh --no-run
 
-# Build + cài /Applications + chạy (sẽ pkill HyperMac trước)
+# Build + cài /Applications + chạy (sẽ pkill UMac trước)
 ./build.sh
 ```
 
 - `xcodebuild` không bắt buộc; máy hiện tại chỉ có Command Line Tools và build bằng SwiftPM.
-- Log runtime: `/tmp/displaycontrol.log` (hàm `appLog()` trong `Sources/Logger.swift`).
-- App đang chạy: `pgrep -xl HyperMac`.
-- **Chữ ký code:** dùng identity self-signed cố định `HyperMac Self-Signed`
+- Log runtime: `/tmp/umac.log` (hàm `appLog()` trong `Sources/Logger.swift`).
+- App đang chạy: `pgrep -xl UMac`.
+- **Chữ ký code:** dùng identity self-signed cố định `UMac Self-Signed`
   (tạo bởi `./scripts/setup-signing-identity.sh`). Tuyệt đối không quay lại
   `codesign -s -` (ad-hoc) vì mỗi lần build sẽ sinh cdhash mới và macOS thu hồi
   quyền Accessibility → `⌘Tab` / `⌘⇧C` chết. Xem mục 7.
@@ -158,18 +158,18 @@ swift build -c release
 - Hạn chế đã biết: ghi qua page cache có thể xong trước nhịp lấy mẫu nên tiến trình
   có thể không hiện (ví dụ `dd` tốc độ cao); số liệu ổ cứng vẫn đúng.
 
-**Debug:** đặt `HYPERMAC_DISKSPEED_DEBUG=1` để log mỗi mẫu vào `/tmp/displaycontrol.log`
-(dòng `💾 DiskSpeed: …`). Hook `HYPERMAC_DISKSPEED_TEST_HOST` đã được gỡ.
+**Debug:** đặt `UMAC_DISKSPEED_DEBUG=1` để log mỗi mẫu vào `/tmp/umac.log`
+(dòng `💾 DiskSpeed: …`). Hook `UMAC_DISKSPEED_TEST_HOST` đã được gỡ.
 
 ### 6.2. Kiểm thử giao diện không cần chụp màn hình
-- `HYPERMAC_PREVIEW=1` mở cửa sổ 380×570 chứa `MainView` (không tạo status item).
-- `HYPERMAC_PREVIEW_TAB=0|1|2` chọn tab (mặc định 1).
-- `HYPERMAC_PREVIEW_OUT=/tmp/ui.png` render thẳng ra PNG bằng `ImageRenderer`
+- `UMAC_PREVIEW=1` mở cửa sổ 380×570 chứa `MainView` (không tạo status item).
+- `UMAC_PREVIEW_TAB=0|1|2` chọn tab (mặc định 1).
+- `UMAC_PREVIEW_OUT=/tmp/ui.png` render thẳng ra PNG bằng `ImageRenderer`
   rồi thoát — hữu ích khi terminal không có quyền Screen Recording.
-- `HYPERMAC_DISKSPEED_FAKE=1` nạp số liệu giả (U280-Pro → SSD, LAN en0) để kiểm tra
+- `UMAC_DISKSPEED_FAKE=1` nạp số liệu giả (U280-Pro → SSD, LAN en0) để kiểm tra
   layout dòng chi tiết. **Chỉ dùng khi phát triển**, không ảnh hưởng người dùng.
-- `HYPERMAC_DISKSPEED_AUTOSTART=1` giả lập popover đang mở lúc khởi động;
-  `HYPERMAC_DISKSPEED_AUTOCLOSE=<giây>` tự đóng sau N giây — dùng để kiểm tra
+- `UMAC_DISKSPEED_AUTOSTART=1` giả lập popover đang mở lúc khởi động;
+  `UMAC_DISKSPEED_AUTOCLOSE=<giây>` tự đóng sau N giây — dùng để kiểm tra
   timer bật/tắt mà không cần bấm menu bar.
 - Lưu ý: `ImageRenderer` không render nội dung bên trong `ScrollView`, nên ảnh
   preview chỉ dùng để kiểm tra phần header/tab/card, không thay thế kiểm thử thật.
@@ -183,15 +183,15 @@ swift build -c release
 ## 6.1. Bảo mật helper, updater & tab Dọn dẹp (nhánh `security-and-cleaner`)
 
 ### Helper khóa sạc
-- Cài vào `/Library/PrivilegedHelperTools/com.opensource.hypermac/` (root:wheel), **không** dùng `/usr/local/bin` (có thể ghi bằng user → leo thang root).
-- Sudoers `/etc/sudoers.d/hypermac_power`: chỉ user đã cài, chỉ `status | charge-on | charge-off`, kiểm tra bằng `visudo -cf` trước khi cài.
+- Cài vào `/Library/PrivilegedHelperTools/com.l3dhung.umac/` (root:wheel), **không** dùng `/usr/local/bin` (có thể ghi bằng user → leo thang root).
+- Sudoers `/etc/sudoers.d/umac_power`: chỉ user đã cài, chỉ `status | charge-on | charge-off`, kiểm tra bằng `visudo -cf` trước khi cài.
 - `install-helper.sh install <user> <smc> <helper>` / `uninstall`; cả hai đều gỡ sudoers cũ `displaycontrol_power` (`ALL ALL NOPASSWD`).
 - Script root không còn lệnh quạt, không tìm `smc` theo PATH hay thư mục của user.
 - Binary `smc` chỉ có arm64 → trên Intel UI báo "chưa hỗ trợ", không cài helper.
 
 ### Updater
 - Bản tải về phải thỏa Designated Requirement của app đang chạy (`SecStaticCodeCheckValidity`): cùng bundle ID + cùng chứng chỉ. Bản build ad-hoc sẽ không tự cập nhật — chủ ý.
-- File tạm nằm trong `FileManager.temporaryDirectory/HyperMacUpdate` (quyền 700), không dùng `/tmp` chung.
+- File tạm nằm trong `FileManager.temporaryDirectory/UMacUpdate` (quyền 700), không dùng `/tmp` chung.
 
 ### Tab Dọn dẹp
 - **Rác hệ thống:** `~/Library/Caches`, `~/Library/Logs`, DerivedData / CoreSimulator Caches / iOS DeviceSupport, npm, Gradle, `~/.cache` (mặc định không chọn). Bỏ qua `com.apple.*` và cache dịch vụ Apple không tiền tố; cache của app đang chạy mặc định không chọn.
@@ -212,33 +212,33 @@ swift build -c release
 macOS coi là app khác → **thu hồi quyền Accessibility** → `⌘Tab`, `⌘⇧C` không chạy
 cho tới khi người dùng cấp lại tay.
 
-**Giải pháp đã áp dụng:** chứng chỉ self-signed cố định `HyperMac Self-Signed`.
+**Giải pháp đã áp dụng:** chứng chỉ self-signed cố định `UMac Self-Signed`.
 
 ```bash
 ./scripts/setup-signing-identity.sh   # chạy 1 lần
 ./build.sh                            # build.sh tự dùng identity này
 ```
 
-- Script sinh key + cert (EKU `codeSigning`) trong `~/.hypermac-signing/` (mode 700),
+- Script sinh key + cert (EKU `codeSigning`) trong `~/.umac-signing/` (mode 700),
   import vào login keychain, rồi thêm trust policy Code Signing ở user domain.
 - `build.sh` tự dò identity; nếu có thì ký bằng nó, nếu không thì fallback ad-hoc
-  (kèm cảnh báo). Có thể override bằng biến môi trường `HYPERMAC_SIGN_IDENTITY`.
+  (kèm cảnh báo). Có thể override bằng biến môi trường `UMAC_SIGN_IDENTITY`.
 - Designated Requirement hiện tại (`codesign -d -r-`):
-  `identifier "com.opensource.hypermac" and certificate root = H"5f052de8…"`
+  `identifier "com.l3dhung.umac" and certificate root = H"5f052de8…"`
   → **không phụ thuộc nội dung binary**, nên quyền TCC giữ nguyên qua mọi rebuild.
 
 **Nếu vẫn mất quyền / app không nhận phím tắt:**
 
 ```bash
 # 1. Kiểm tra chữ ký
-codesign -dv --verbose=4 /Applications/HyperMac.app | grep Authority
+codesign -dv --verbose=4 /Applications/UMac.app | grep Authority
 # 2. Xoá entry TCC cũ rồi mở lại app để prompt
-tccutil reset Accessibility com.opensource.hypermac
-open /Applications/HyperMac.app
-# 3. System Settings → Privacy & Security → Accessibility → bật HyperMac
+tccutil reset Accessibility com.l3dhung.umac
+open /Applications/UMac.app
+# 3. System Settings → Privacy & Security → Accessibility → bật UMac
 ```
 
-**Không commit** `~/.hypermac-signing/` hay file `.p12` vào repo (chứa private key).
+**Không commit** `~/.umac-signing/` hay file `.p12` vào repo (chứa private key).
 `.gitignore` đã chặn `*.p12` và `*.p12.base64`.
 
 ### 7.1. Ký bản phát hành trên GitHub Actions
@@ -249,22 +249,22 @@ Runner không có keychain của máy dev, nên phải đưa private key vào **
 
 ```bash
 ./scripts/export-ci-signing.sh
-# → ~/.hypermac-signing/ci-signing.p12
-# → ~/.hypermac-signing/ci-signing.p12.base64
+# → ~/.umac-signing/ci-signing.p12
+# → ~/.umac-signing/ci-signing.p12.base64
 # → in ra mật khẩu + certificate root SHA-1
 ```
 
 2. Thêm 2 secret tại `Settings → Secrets and variables → Actions`:
-   - `HYPERMAC_SIGNING_P12_BASE64`: nội dung file `.base64`
-   - `HYPERMAC_SIGNING_P12_PASSWORD`: mật khẩu script in ra
+   - `UMAC_SIGNING_P12_BASE64`: nội dung file `.base64`
+   - `UMAC_SIGNING_P12_PASSWORD`: mật khẩu script in ra
 
 3. Workflow `.github/workflows/release.yml` sẽ:
    - tạo keychain tạm, import `.p12`, mở partition list cho `codesign`,
    - **thêm keychain tạm vào search list** của user (codesign chỉ tìm identity
      trong các keychain thuộc search list; `--keychain` một mình là không đủ),
-   - build với `HYPERMAC_SIGN_IDENTITY=HyperMac Self-Signed` và
-     `HYPERMAC_SIGN_KEYCHAIN=<keychain tạm>`,
-   - verify `Authority=HyperMac Self-Signed` + in DR,
+   - build với `UMAC_SIGN_IDENTITY=UMac Self-Signed` và
+     `UMAC_SIGN_KEYCHAIN=<keychain tạm>`,
+   - verify `Authority=UMac Self-Signed` + in DR,
    - xoá keychain tạm ở bước `always()`.
 
 Nếu thiếu secret, workflow vẫn build nhưng **fallback ad-hoc** (kèm cảnh báo) —
@@ -287,16 +287,16 @@ khi đó quyền Accessibility sẽ mất sau update.
 **Nên set secret bằng CLI để tránh dán sai** (đã từng dán cả câu lệnh `pbcopy …`):
 
 ```bash
-gh secret set HYPERMAC_SIGNING_P12_BASE64 --repo mrgoose000000-gif/HyperMac \
-  < ~/.hypermac-signing/ci-signing.p12.base64
-gh secret set HYPERMAC_SIGNING_P12_PASSWORD --repo mrgoose000000-gif/HyperMac \
+gh secret set UMAC_SIGNING_P12_BASE64 --repo l3dhung/UMac \
+  < ~/.umac-signing/ci-signing.p12.base64
+gh secret set UMAC_SIGNING_P12_PASSWORD --repo l3dhung/UMac \
   --body "hm-test-pass-2026"
 ```
 
 Khi bước import fail, đọc lỗi bằng annotation công khai thay vì log:
 
 ```bash
-gh run view <run-id> --repo mrgoose000000-gif/HyperMac \
+gh run view <run-id> --repo l3dhung/UMac \
   --json jobs -q '.jobs[0].check_run_url' \
   | xargs -I{} gh api {}/annotations --jq '.[] | "\(.title): \(.message)"'
 ```
@@ -314,7 +314,7 @@ gh run view <run-id> --repo mrgoose000000-gif/HyperMac \
 - Gọi trong `applicationDidFinishLaunching` **trước** `KeyInterceptor.shared.start()`.
 - Mỗi lần khởi động, nếu `AXIsProcessTrusted() == false` **và**
   `UserDefaults["ax_recovery_version"] != phiên bản hiện tại`:
-  - chạy `tccutil reset Accessibility com.opensource.hypermac` (xoá entry cũ bị kẹt),
+  - chạy `tccutil reset Accessibility com.l3dhung.umac` (xoá entry cũ bị kẹt),
   - lưu `ax_recovery_version` = phiên bản hiện tại (mỗi bản chỉ reset **một lần**,
     nên không lặp lại mỗi lần mở app và không phiền người dùng đã từ chối cấp quyền),
   - sau 0.8s gọi `AXIsProcessTrustedWithOptions(prompt: true)` để macOS hiện hộp
@@ -330,7 +330,7 @@ gh run view <run-id> --repo mrgoose000000-gif/HyperMac \
 Private key trong secret = ai phát hành được app. Kiểm tra định kỳ bằng `gh`:
 
 ```bash
-R=mrgoose000000-gif/HyperMac
+R=l3dhung/UMac
 gh api repos/$R --jq '.permissions'                       # quyền của token hiện tại
 gh api "repos/$R/collaborators?affiliation=direct" --jq '.[] | "\(.login) \(.role_name)"'
 gh api "repos/$R/collaborators?affiliation=outside" --jq '.[] | .login'
@@ -356,7 +356,7 @@ Khuyến nghị (chưa bắt buộc, làm khi cần siết):
    be pinned to a full-length commit SHA*.
 4. Bật 2FA/passkey cho tài khoản GitHub; xoá token cũ không dùng; kiểm tra
    `Settings → Sessions`.
-5. Giữ `~/.hypermac-signing/` ngoài iCloud/Dropbox và bật FileVault.
+5. Giữ `~/.umac-signing/` ngoài iCloud/Dropbox và bật FileVault.
 
 ## 8. Ghi chú kiểm thử
 

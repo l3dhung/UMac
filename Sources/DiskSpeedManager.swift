@@ -476,15 +476,15 @@ public final class DiskSpeedManager: ObservableObject {
 
     private static let defaultsKey = "disk_speed_enabled"
 
-    private let queue = DispatchQueue(label: "com.hypermac.diskspeed", qos: .utility)
+    private let queue = DispatchQueue(label: "com.umac.diskspeed", qos: .utility)
     private let sampler = DiskSpeedSampler()
     private var timer: Timer?
     private var isSampling = false
     private var isPopoverVisible = false
-    private let debugLogging = ProcessInfo.processInfo.environment["HYPERMAC_DISKSPEED_DEBUG"] == "1"
+    private let debugLogging = ProcessInfo.processInfo.environment["UMAC_DISKSPEED_DEBUG"] == "1"
 
     private init() {
-        let fakePreview = ProcessInfo.processInfo.environment["HYPERMAC_DISKSPEED_FAKE"] == "1"
+        let fakePreview = ProcessInfo.processInfo.environment["UMAC_DISKSPEED_FAKE"] == "1"
         isEnabled = fakePreview || UserDefaults.standard.bool(forKey: Self.defaultsKey)
         if fakePreview {
             applyFakePreviewSnapshot()

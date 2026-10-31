@@ -1,10 +1,10 @@
 #!/bin/bash
-# HyperMac Power Helper — chạy bằng root qua sudoers (chỉ user đã cài, chỉ 3 lệnh cố định).
+# UMac Power Helper — chạy bằng root qua sudoers (chỉ user đã cài, chỉ 3 lệnh cố định).
 # Chỉ dùng binary smc nằm cùng thư mục root-owned; không tìm theo PATH hay thư mục ghi được bằng user.
 set -u
 PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
-SMC="/Library/PrivilegedHelperTools/com.opensource.hypermac/smc"
+SMC="/Library/PrivilegedHelperTools/com.l3dhung.umac/smc"
 
 if [ ! -x "$SMC" ]; then
     echo "Error: smc binary not found"

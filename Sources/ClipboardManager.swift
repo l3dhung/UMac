@@ -128,11 +128,11 @@ public class ClipboardManager: ObservableObject {
     private let storageURL: URL
 
     private init() {
-        // Resolve storage path: ~/Library/Application Support/HyperMac/clipboard.json
+        // Resolve storage path: ~/Library/Application Support/UMac/clipboard.json
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let hypermacDir = appSupport.appendingPathComponent("HyperMac", isDirectory: true)
-        try? FileManager.default.createDirectory(at: hypermacDir, withIntermediateDirectories: true)
-        self.storageURL = hypermacDir.appendingPathComponent("clipboard.json")
+        let umacDir = appSupport.appendingPathComponent("UMac", isDirectory: true)
+        try? FileManager.default.createDirectory(at: umacDir, withIntermediateDirectories: true)
+        self.storageURL = umacDir.appendingPathComponent("clipboard.json")
 
         // Load Settings
         if UserDefaults.standard.object(forKey: "clipboard_monitoring_enabled") != nil {

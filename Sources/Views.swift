@@ -118,7 +118,7 @@ struct ModernHeaderBar: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(Color.accentColor)
 
-                Text("HyperMac")
+                Text("UMac")
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
@@ -220,7 +220,7 @@ struct ModernHeaderBar: View {
                     .background(Circle().fill(Color.primary.opacity(0.05)))
             }
             .buttonStyle(.plain)
-            .help("Thoát HyperMac")
+            .help("Thoát UMac")
         }
         .padding(.horizontal, 14)
         .padding(.top, 10)
@@ -485,7 +485,7 @@ struct FileTransferSpeedCard: View {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .help(diskSpeed.isEnabled
-                      ? "Đang đo khi bảng này mở. Tắt để HyperMac ngừng quét hoàn toàn."
+                      ? "Đang đo khi bảng này mở. Tắt để UMac ngừng quét hoàn toàn."
                       : "Bật để đo tốc độ chép file (ổ cứng, thẻ nhớ, NAS qua LAN).")
             }
 
@@ -917,7 +917,7 @@ struct ShortcutsTabView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Cần cấp quyền Trợ năng (Accessibility)")
                                 .font(.system(size: 10, weight: .bold))
-                            Text("Bật HyperMac trong Cài đặt hệ thống để phím tắt hoạt động.")
+                            Text("Bật UMac trong Cài đặt hệ thống để phím tắt hoạt động.")
                                 .font(.system(size: 8.5))
                                 .foregroundStyle(.secondary)
                         }
@@ -1963,7 +1963,7 @@ struct BatteryCardView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("💡 Quy trình: Khi đến lịch, bạn rút sạc dùng máy tự nhiên xuống ≤ 20%. Khi cắm sạc lại, HyperMac sẽ tự động sạc 100% cân bằng cell ➔ ngâm 15p ➔ tự khóa lại 80% SMC Bypass.")
+                    Text("💡 Quy trình: Khi đến lịch, bạn rút sạc dùng máy tự nhiên xuống ≤ 20%. Khi cắm sạc lại, UMac sẽ tự động sạc 100% cân bằng cell ➔ ngâm 15p ➔ tự khóa lại 80% SMC Bypass.")
                         .font(.system(size: 7.2))
                         .foregroundStyle(.secondary)
                         .padding(.top, 1)
@@ -2565,7 +2565,7 @@ struct UpdateModalView: View {
                             .foregroundStyle(Color.accentColor)
 
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("Cập nhật HyperMac")
+                            Text("Cập nhật UMac")
                                 .font(.system(size: 12, weight: .bold))
                             Text("Phiên bản hiện tại: v\(UpdateManager.currentVersion)")
                                 .font(.system(size: 8.5))
@@ -2608,7 +2608,7 @@ struct UpdateModalView: View {
                         Text("Bạn đang dùng phiên bản mới nhất!")
                             .font(.system(size: 11.5, weight: .semibold))
 
-                        Text("HyperMac v\(ver) hiện là phiên bản cập nhật nhất. Máy của bạn đã sẵn sàng.")
+                        Text("UMac v\(ver) hiện là phiên bản cập nhật nhất. Máy của bạn đã sẵn sàng.")
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -2706,7 +2706,7 @@ struct UpdateModalView: View {
                             .progressViewStyle(.linear)
                             .padding(.horizontal, 20)
 
-                        Text("HyperMac sẽ tự động thay thế và khởi động lại ngay sau khi tải xong.")
+                        Text("UMac sẽ tự động thay thế và khởi động lại ngay sau khi tải xong.")
                             .font(.system(size: 8.5))
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -2775,7 +2775,7 @@ struct UpdateModalView: View {
 
                 // Preferences Row: Auto check on launch
                 HStack {
-                    Text("Tự động kiểm tra bản mới khi mở HyperMac")
+                    Text("Tự động kiểm tra bản mới khi mở UMac")
                         .font(.system(size: 8.5))
                         .foregroundStyle(.secondary)
 

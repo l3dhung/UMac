@@ -2,23 +2,23 @@
 # ─────────────────────────────────────────────────────────────
 #  export-ci-signing.sh
 #
-#  Xuất chứng chỉ ký self-signed của HyperMac thành file .p12 + base64
+#  Xuất chứng chỉ ký self-signed của UMac thành file .p12 + base64
 #  để đưa vào GitHub Actions Secrets. Nhờ đó bản phát hành trên CI
 #  được ký bằng CÙNG identity với bản local → Designated Requirement
 #  không đổi giữa các phiên bản → quyền Accessibility không bị mất
 #  sau mỗi lần update.
 #
-#  Chạy sau khi đã có ~/.hypermac-signing/{key.pem,cert.pem}
+#  Chạy sau khi đã có ~/.umac-signing/{key.pem,cert.pem}
 #  (do ./scripts/setup-signing-identity.sh tạo ra).
 #
 #  Không commit file .p12 / .base64 — chúng chứa private key.
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
-WORK_DIR="${HOME}/.hypermac-signing"
+WORK_DIR="${HOME}/.umac-signing"
 KEY="${WORK_DIR}/key.pem"
 CERT="${WORK_DIR}/cert.pem"
-IDENTITY="${HYPERMAC_SIGN_IDENTITY:-HyperMac Self-Signed}"
+IDENTITY="${UMAC_SIGN_IDENTITY:-UMac Self-Signed}"
 OUT="${WORK_DIR}/ci-signing.p12"
 
 if [[ ! -f "${KEY}" || ! -f "${CERT}" ]]; then
@@ -27,11 +27,11 @@ if [[ ! -f "${KEY}" || ! -f "${CERT}" ]]; then
     exit 1
 fi
 
-PASS="${HYPERMAC_CI_P12_PASSWORD:-$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | cut -c1-28)}"
+PASS="${UMAC_CI_P12_PASSWORD:-$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | cut -c1-28)}"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║   HyperMac — Xuất chứng chỉ cho GitHub Actions       ║"
+echo "║   UMac — Xuất chứng chỉ cho GitHub Actions       ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
@@ -74,10 +74,10 @@ echo "   → Designated Requirement phải chứa: certificate root = H\"${ROOT_
 echo ""
 echo "──────────────────────────────────────────────────────────"
 echo "Thêm 2 secret tại:"
-echo "  https://github.com/mrgoose000000-gif/HyperMac/settings/secrets/actions"
+echo "  https://github.com/l3dhung/UMac/settings/secrets/actions"
 echo ""
-echo "  HYPERMAC_SIGNING_P12_BASE64  = toàn bộ nội dung file .base64"
-echo "  HYPERMAC_SIGNING_P12_PASSWORD = mật khẩu ở trên"
+echo "  UMAC_SIGNING_P12_BASE64  = toàn bộ nội dung file .base64"
+echo "  UMAC_SIGNING_P12_PASSWORD = mật khẩu ở trên"
 echo ""
 echo "Gợi ý copy nhanh vào clipboard:"
 echo "  pbcopy < \"${OUT}.base64\""

@@ -28,11 +28,11 @@ public class BatteryManager: ObservableObject {
     @Published public var isBypassActive: Bool = false    // SMC CHTE = 1 (Running direct from AC)
     @Published public var isHelperInstalled: Bool = false
     @Published public var isInstallingHelper: Bool = false
-    /// Còn sudoers "ALL ALL NOPASSWD" của bản ≤ v1.6.0 → cần gỡ.
+    /// Còn sudoers "ALL ALL NOPASSWD" của HyperMac ≤ v1.6.0 → cần gỡ.
     @Published public var hasLegacyHelper: Bool = false
 
     /// Helper nằm trong thư mục root-owned; sudoers chỉ cho đúng user đã cài chạy 3 lệnh cố định.
-    public static let helperPath = "/Library/PrivilegedHelperTools/com.opensource.hypermac/hypermac-power"
+    public static let helperPath = "/Library/PrivilegedHelperTools/com.l3dhung.umac/umac-power"
     static let legacySudoersPath = "/etc/sudoers.d/displaycontrol_power"
 
     /// Binary smc đi kèm chỉ có bản arm64 và khóa CHTE chỉ có trên Apple Silicon.
@@ -548,7 +548,7 @@ public class BatteryManager: ObservableObject {
                         title: "⚡️ Hiệu chuẩn pin: Đã đạt 20%",
                         body: isPluggedIn
                             ? "Đang sạc liên tục lên 100% để cân bằng điện áp các cell pin."
-                            : "Hãy cắm sạc để HyperMac sạc cân bằng cell lên 100% và tự động khóa lại ở 80%."
+                            : "Hãy cắm sạc để UMac sạc cân bằng cell lên 100% và tự động khóa lại ở 80%."
                     )
                 } else {
                     setChargingInhibited(true)
@@ -663,7 +663,7 @@ public class BatteryManager: ObservableObject {
                 setChargingInhibited(false)
                 sendNotification(
                     title: "⚡️ Bắt đầu hiệu chuẩn pin tự động",
-                    body: "Pin đang ở mức \(currentLevel)%. HyperMac đang sạc lên 100% để cân bằng cell và sẽ tự động khóa lại ở 80%."
+                    body: "Pin đang ở mức \(currentLevel)%. UMac đang sạc lên 100% để cân bằng cell và sẽ tự động khóa lại ở 80%."
                 )
             } else if calibrationState == .idle {
                 startCalibration(isAutomatic: true)
@@ -701,8 +701,8 @@ public class BatteryManager: ObservableObject {
         sendNotification(
             title: "🔬 Bắt đầu hiệu chuẩn pin (\(reason))",
             body: isPluggedIn
-                ? "Bước 1: Rút sạc dùng máy tự nhiên xuống mức 20%. Sau đó cắm sạc lại để HyperMac tự động làm phần còn lại."
-                : "Bước 1: Tiếp tục dùng pin xuống mức 20%. Sau đó cắm sạc lại để HyperMac tự động làm phần còn lại."
+                ? "Bước 1: Rút sạc dùng máy tự nhiên xuống mức 20%. Sau đó cắm sạc lại để UMac tự động làm phần còn lại."
+                : "Bước 1: Tiếp tục dùng pin xuống mức 20%. Sau đó cắm sạc lại để UMac tự động làm phần còn lại."
         )
     }
 
@@ -755,7 +755,7 @@ public class BatteryManager: ObservableObject {
             return
         }
         guard let smc = Bundle.main.path(forResource: "smc", ofType: nil),
-              let helper = Bundle.main.path(forResource: "hypermac-power", ofType: nil) else {
+              let helper = Bundle.main.path(forResource: "umac-power", ofType: nil) else {
             completion?(false)
             return
         }

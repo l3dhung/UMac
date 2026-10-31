@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────
 #  setup-signing-identity.sh
 #
-#  Tạo chứng chỉ code-signing self-signed CỐ ĐỊNH cho HyperMac.
+#  Tạo chứng chỉ code-signing self-signed CỐ ĐỊNH cho UMac.
 #
 #  Vì sao cần? App ký ad-hoc (`codesign -s -`) sinh ra cdhash mới sau
 #  MỖI lần build, nên macOS coi đó là app khác và thu hồi quyền
@@ -15,9 +15,9 @@
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
-IDENTITY_NAME="${HYPERMAC_SIGN_IDENTITY:-HyperMac Self-Signed}"
-WORK_DIR="${HOME}/.hypermac-signing"
-P12_PASS="hypermac-local"
+IDENTITY_NAME="${UMAC_SIGN_IDENTITY:-UMac Self-Signed}"
+WORK_DIR="${HOME}/.umac-signing"
+P12_PASS="umac-local"
 LOGIN_KEYCHAIN="${HOME}/Library/Keychains/login.keychain-db"
 
 mkdir -p "${WORK_DIR}"
@@ -25,7 +25,7 @@ chmod 700 "${WORK_DIR}"
 
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
-echo "║   HyperMac — Tạo chứng chỉ ký cố định (local)    ║"
+echo "║   UMac — Tạo chứng chỉ ký cố định (local)    ║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -45,8 +45,8 @@ prompt             = no
 distinguished_name = dn
 x509_extensions    = v3_codesign
 [dn]
-CN = HyperMac Self-Signed
-O  = HyperMac Local Signing
+CN = UMac Self-Signed
+O  = UMac Local Signing
 [v3_codesign]
 basicConstraints       = critical, CA:false
 keyUsage               = critical, digitalSignature

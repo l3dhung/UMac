@@ -83,7 +83,7 @@ public class VirtualDisplayManager: ObservableObject {
 
         let res = currentResolution
         let id = VirtualDisplayBridge.shared().createDisplay(
-            withName: "HyperMac Virtual Display",
+            withName: "UMac Virtual Display",
             width: res.width,
             height: res.height,
             refreshRate: res.refreshRate,
@@ -123,7 +123,7 @@ public class VirtualDisplayManager: ObservableObject {
         guard isVirtualDisplayActive else { return }
         let res = currentResolution
         let id = VirtualDisplayBridge.shared().createDisplay(
-            withName: "HyperMac Virtual Display",
+            withName: "UMac Virtual Display",
             width: res.width,
             height: res.height,
             refreshRate: res.refreshRate,

@@ -68,7 +68,7 @@
 
     CGVirtualDisplayDescriptor *desc = [descClass new];
     [desc setDispatchQueue:dispatch_get_main_queue()];
-    desc.name = name ?: @"HyperMac Virtual Display";
+    desc.name = name ?: @"UMac Virtual Display";
     desc.maxPixelsWide = (unsigned int)MAX(3840, width);
     desc.maxPixelsHigh = (unsigned int)MAX(2160, height);
     desc.sizeInMillimeters = CGSizeMake(531, 298);

@@ -349,7 +349,7 @@ public struct ClipboardOverlayView: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.secondary)
 
-            Text("Hãy sao chép (⌘C) văn bản, hình ảnh hoặc tệp tin để lưu vào HyperMac.")
+            Text("Hãy sao chép (⌘C) văn bản, hình ảnh hoặc tệp tin để lưu vào UMac.")
                 .font(.system(size: 9.5))
                 .foregroundStyle(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)

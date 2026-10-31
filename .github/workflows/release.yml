@@ -1,4 +1,4 @@
-name: Build & Release HyperMac
+name: Build & Release UMac
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag name (e.g. v1.4.7)'
+        description: 'Tag name (e.g. v1.0.0)'
         required: true
-        default: 'v1.4.7'
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -31,11 +31,11 @@ jobs:
       - name: Import Code Signing Certificate
         id: signing
         env:
-          SIGNING_P12_BASE64: ${{ secrets.HYPERMAC_SIGNING_P12_BASE64 }}
-          SIGNING_P12_PASSWORD: ${{ secrets.HYPERMAC_SIGNING_P12_PASSWORD }}
+          SIGNING_P12_BASE64: ${{ secrets.UMAC_SIGNING_P12_BASE64 }}
+          SIGNING_P12_PASSWORD: ${{ secrets.UMAC_SIGNING_P12_PASSWORD }}
         run: |
           set -uo pipefail
-          KEYCHAIN_PATH="$RUNNER_TEMP/hypermac-signing.keychain-db"
+          KEYCHAIN_PATH="$RUNNER_TEMP/umac-signing.keychain-db"
 
           fail() {
             echo "::error title=Signing certificate import failed::$1"
@@ -44,12 +44,12 @@ jobs:
           }
 
           if [ -z "${SIGNING_P12_BASE64}" ]; then
-            echo "::warning::Chưa có secret HYPERMAC_SIGNING_P12_BASE64 — build sẽ ký ad-hoc."
+            echo "::warning::Chưa có secret UMAC_SIGNING_P12_BASE64 — build sẽ ký ad-hoc."
             echo "signed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ -z "${SIGNING_P12_PASSWORD}" ]; then
-            fail "Thiếu secret HYPERMAC_SIGNING_P12_PASSWORD."
+            fail "Thiếu secret UMAC_SIGNING_P12_PASSWORD."
           fi
 
           KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
@@ -117,28 +117,28 @@ jobs:
           IDENTITIES="$(security find-identity -p codesigning "$KEYCHAIN_PATH" 2>&1)"
           echo "$IDENTITIES"
           case "$IDENTITIES" in
-            *"HyperMac Self-Signed"*)
-              echo "✅ Đã import chứng chỉ HyperMac Self-Signed"
+            *"UMac Self-Signed"*)
+              echo "✅ Đã import chứng chỉ UMac Self-Signed"
               echo "signed=true" >> "$GITHUB_OUTPUT"
               ;;
             *)
-              fail "Đã import nhưng không thấy identity 'HyperMac Self-Signed'. Output: $(echo "$IDENTITIES" | tr '\n' ' ')"
+              fail "Đã import nhưng không thấy identity 'UMac Self-Signed'. Output: $(echo "$IDENTITIES" | tr '\n' ' ')"
               ;;
           esac
 
-      - name: Compile and Package HyperMac Bundle
+      - name: Compile and Package UMac Bundle
         run: ./build.sh --no-run
         env:
           CI: true
-          HYPERMAC_SIGN_IDENTITY: HyperMac Self-Signed
-          HYPERMAC_SIGN_KEYCHAIN: ${{ runner.temp }}/hypermac-signing.keychain-db
+          UMAC_SIGN_IDENTITY: UMac Self-Signed
+          UMAC_SIGN_KEYCHAIN: ${{ runner.temp }}/umac-signing.keychain-db
 
       - name: Verify Code Signature
         if: steps.signing.outputs.signed == 'true'
         run: |
-          codesign --verify --deep --strict build/HyperMac.app
-          codesign -dv --verbose=4 build/HyperMac.app 2>&1 | grep -F "Authority=HyperMac Self-Signed"
-          codesign -d -r- build/HyperMac.app 2>&1 | tail -1
+          codesign --verify --deep --strict build/UMac.app
+          codesign -dv --verbose=4 build/UMac.app 2>&1 | grep -F "Authority=UMac Self-Signed"
+          codesign -d -r- build/UMac.app 2>&1 | tail -1
 
       - name: Determine Release Tag
         id: vars
@@ -153,8 +153,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          name: HyperMac ${{ steps.vars.outputs.tag }}
-          files: build/HyperMac.zip
+          name: UMac ${{ steps.vars.outputs.tag }}
+          files: build/UMac.zip
           draft: false
           # Tag có hậu tố (v1.6.0-rc1, v1.6.0-test) → release nháp thử nghiệm,
           # không bị UpdateManager coi là bản chính thức.
@@ -164,4 +164,4 @@ jobs:
       - name: Cleanup Signing Keychain
         if: always()
         run: |
-          security delete-keychain "$RUNNER_TEMP/hypermac-signing.keychain-db" 2>/dev/null || true
+          security delete-keychain "$RUNNER_TEMP/umac-signing.keychain-db" 2>/dev/null || true

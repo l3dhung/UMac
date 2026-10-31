@@ -102,7 +102,7 @@ public class CleanerManager: ObservableObject {
 
     nonisolated private static func buildJunkCategories(home: URL, runningBundleIDs: Set<String>) -> [JunkCategory] {
         let library = home.appendingPathComponent("Library")
-        let ownBundleID = Bundle.main.bundleIdentifier ?? "com.opensource.hypermac"
+        let ownBundleID = Bundle.main.bundleIdentifier ?? "com.l3dhung.umac"
 
         func children(of dir: URL, selected: Bool = true, skip: (String) -> Bool = { _ in false }) -> [CleanupItem] {
             let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
@@ -201,7 +201,7 @@ public class CleanerManager: ObservableObject {
         let home = self.home
 
         Task.detached(priority: .userInitiated) {
-            let ownBundleID = Bundle.main.bundleIdentifier ?? "com.opensource.hypermac"
+            let ownBundleID = Bundle.main.bundleIdentifier ?? "com.l3dhung.umac"
             let roots = [URL(fileURLWithPath: "/Applications"), home.appendingPathComponent("Applications")]
             var found: [InstalledApp] = []
 

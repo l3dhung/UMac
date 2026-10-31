@@ -26,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         // UI preview window (chỉ dùng khi kiểm thử giao diện, không ảnh hưởng người dùng)
-        if ProcessInfo.processInfo.environment["HYPERMAC_PREVIEW"] == "1" {
+        if ProcessInfo.processInfo.environment["UMAC_PREVIEW"] == "1" {
             showPreviewWindow()
             return
         }
@@ -44,7 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // Initialize Status Item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "command.circle.fill", accessibilityDescription: "HyperMac")
+            button.image = NSImage(systemSymbolName: "command.circle.fill", accessibilityDescription: "UMac")
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -76,9 +76,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // Hook kiểm thử: giả lập popover mở/đóng mà không cần bấm menu bar.
         let env = ProcessInfo.processInfo.environment
-        if env["HYPERMAC_DISKSPEED_AUTOSTART"] == "1" {
+        if env["UMAC_DISKSPEED_AUTOSTART"] == "1" {
             DiskSpeedManager.shared.setPopoverVisible(true)
-            if let seconds = Double(env["HYPERMAC_DISKSPEED_AUTOCLOSE"] ?? ""), seconds > 0 {
+            if let seconds = Double(env["UMAC_DISKSPEED_AUTOCLOSE"] ?? ""), seconds > 0 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
                     DiskSpeedManager.shared.setPopoverVisible(false)
                 }
@@ -90,17 +90,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         VirtualDisplayManager.shared.destroyVirtualDisplay()
     }
 
-    /// Cửa sổ xem trước UI khi đặt `HYPERMAC_PREVIEW=1` (dùng để chụp/kiểm tra layout).
-    /// `HYPERMAC_PREVIEW_TAB=0|1|2` chọn tab, mặc định 1 (Pin & Phần cứng).
-    /// `HYPERMAC_PREVIEW_OUT=/path.png` render thẳng ra PNG (không cần quyền chụp màn hình).
+    /// Cửa sổ xem trước UI khi đặt `UMAC_PREVIEW=1` (dùng để chụp/kiểm tra layout).
+    /// `UMAC_PREVIEW_TAB=0|1|2` chọn tab, mặc định 1 (Pin & Phần cứng).
+    /// `UMAC_PREVIEW_OUT=/path.png` render thẳng ra PNG (không cần quyền chụp màn hình).
     private func showPreviewWindow() {
-        let tab = Int(ProcessInfo.processInfo.environment["HYPERMAC_PREVIEW_TAB"] ?? "") ?? 1
+        let tab = Int(ProcessInfo.processInfo.environment["UMAC_PREVIEW_TAB"] ?? "") ?? 1
         DisplayManager.shared.selectedMainTab = tab
 
         let view = MainView(displayManager: DisplayManager.shared)
             .frame(width: 380, height: 570)
 
-        if let out = ProcessInfo.processInfo.environment["HYPERMAC_PREVIEW_OUT"], !out.isEmpty {
+        if let out = ProcessInfo.processInfo.environment["UMAC_PREVIEW_OUT"], !out.isEmpty {
             let renderer = ImageRenderer(content: view)
             renderer.scale = 2
             if let image = renderer.nsImage,
@@ -119,7 +119,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "HyperMac UI Preview"
+        window.title = "UMac UI Preview"
         window.contentView = NSHostingView(rootView: view)
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -154,7 +154,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
 @main
 @MainActor
-enum HyperMacMain {
+enum UMacMain {
     static let delegate = AppDelegate()
 
     static func main() {
