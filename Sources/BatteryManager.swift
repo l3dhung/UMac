@@ -350,15 +350,33 @@ public class BatteryManager: ObservableObject {
             return
         }
 
-        self.currentLevel = dict["CurrentCapacity"] as? Int ?? self.currentLevel
-        self.maxCapacityPercent = dict["MaxCapacity"] as? Int ?? 100
-        self.nominalCapacity = dict["NominalChargeCapacity"] as? Int ?? self.nominalCapacity
         self.designCapacity = dict["DesignCapacity"] as? Int ?? self.designCapacity
         self.cycleCount = dict["CycleCount"] as? Int ?? self.cycleCount
         self.isCharging = dict["IsCharging"] as? Bool ?? false
         self.isPluggedIn = dict["ExternalConnected"] as? Bool ?? false
         self.isFullyCharged = dict["FullyCharged"] as? Bool ?? false
-        self.timeRemaining = dict["TimeRemaining"] as? Int ?? 0
+        // 65535 = macOS chưa ước lượng được (đang cắm sạc / vừa đổi trạng thái).
+        let remaining = dict["TimeRemaining"] as? Int ?? 0
+        self.timeRemaining = remaining >= 65535 ? 0 : remaining
+
+        // Apple Silicon báo CurrentCapacity/MaxCapacity theo %, còn Intel báo theo mAh
+        // (và không có NominalChargeCapacity). Nhận diện theo dữ liệu nên đúng trên cả hai.
+        let current = dict["CurrentCapacity"] as? Int
+        let maxCapacity = dict["MaxCapacity"] as? Int
+        if let maxCapacity, maxCapacity > 100 {
+            let raw = dict["AppleRawCurrentCapacity"] as? Int ?? current ?? 0
+            self.currentLevel = isFullyCharged
+                ? 100
+                : min(100, Int((Double(raw) / Double(maxCapacity) * 100).rounded()))
+            self.nominalCapacity = dict["AppleRawMaxCapacity"] as? Int ?? maxCapacity
+            self.maxCapacityPercent = designCapacity > 0
+                ? min(100, Int((Double(nominalCapacity) / Double(designCapacity) * 100).rounded()))
+                : 100
+        } else {
+            self.currentLevel = current ?? self.currentLevel
+            self.maxCapacityPercent = maxCapacity ?? 100
+            self.nominalCapacity = dict["NominalChargeCapacity"] as? Int ?? self.nominalCapacity
+        }
 
         if let rawTemp = dict["Temperature"] as? Double {
             self.temperature = rawTemp / 100.0

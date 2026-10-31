@@ -1555,7 +1555,7 @@ struct BatteryCardView: View {
                     iconColor: .yellow,
                     title: "Củ sạc",
                     val: batteryManager.adapterWatts > 0 ? "\(batteryManager.adapterWatts)W" : "Dùng Pin",
-                    sub: batteryManager.adapterWatts > 0 ? "USB-C PD" : "bq40z651"
+                    sub: batteryManager.adapterWatts > 0 ? "USB-C PD" : batteryManager.gasGaugeChip
                 )
             }
 
@@ -2072,8 +2072,19 @@ struct ThermalAndFanCardView: View {
             // 2. Optional Menu Bar temperature pill
             menuBarMonitorRow
 
-            // 3. Apple Silicon 6-Sensor Telemetry Matrix
+            // 2b. Nguồn cảm biến: tự nhận diện chip hoặc chọn tay
+            platformPickerRow
+
+            // 3. 6-Sensor Telemetry Matrix
             thermalMatrixGrid
+
+            // 3b. Intel SMC: quạt & công suất
+            if !thermalManager.fans.isEmpty {
+                fansCard
+            }
+            if !thermalManager.powerReadings.isEmpty {
+                powerCard
+            }
 
             // 4. Detailed Sensor Breakdown (Expandable Accordion)
             detailedSensorsAccordion
@@ -2100,7 +2111,7 @@ struct ThermalAndFanCardView: View {
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(.primary)
 
-                        Text("HID PMU")
+                        Text(isIntel ? "SMC" : "HID PMU")
                             .font(.system(size: 8, weight: .heavy))
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
@@ -2108,7 +2119,7 @@ struct ThermalAndFanCardView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("Cảm biến nhiệt Apple Silicon • Cập nhật mỗi 2.5s")
+                    Text("Cảm biến nhiệt \(thermalManager.platform.displayName) • Cập nhật mỗi 2.5s")
                         .font(.system(size: 7.8))
                         .foregroundStyle(.secondary)
                 }
@@ -2192,7 +2203,7 @@ struct ThermalAndFanCardView: View {
     private var thermalMatrixGrid: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Label("Bản đồ nhiệt Apple Silicon (HID PMU)", systemImage: "cpu")
+                Label(isIntel ? "Bản đồ nhiệt Intel (SMC)" : "Bản đồ nhiệt Apple Silicon (HID PMU)", systemImage: "cpu")
                     .font(.system(size: 9.5, weight: .bold))
                     .foregroundStyle(.primary)
 
@@ -2208,37 +2219,37 @@ struct ThermalAndFanCardView: View {
                     title: "CPU Trung bình",
                     temp: thermalManager.cpuAvgTemp,
                     icon: "cpu",
-                    sub: "Tất cả các nhân"
+                    sub: isIntel ? "Trung bình các nhân" : "Tất cả các nhân"
                 )
                 sensorTile(
                     title: "CPU Nóng nhất",
                     temp: thermalManager.cpuPeakTemp,
                     icon: "flame.fill",
-                    sub: "Core Peak Hotspot"
+                    sub: isIntel ? "Nhân / PECI cao nhất" : "Core Peak Hotspot"
                 )
                 sensorTile(
                     title: "GPU Đồ họa",
                     temp: thermalManager.gpuAvgTemp,
                     icon: "gamecontroller.fill",
-                    sub: "Cụm nhân GPU"
+                    sub: isIntel ? "GPU tích hợp / rời" : "Cụm nhân GPU"
                 )
                 sensorTile(
                     title: "Pin Cell",
                     temp: thermalManager.batteryTemp,
                     icon: "battery.100.bolt",
-                    sub: "Gas Gauge Pack"
+                    sub: isIntel ? "Cảm biến TB0T" : "Gas Gauge Pack"
                 )
                 sensorTile(
                     title: "Ổ cứng SSD",
                     temp: thermalManager.ssdTemp,
                     icon: "internaldrive.fill",
-                    sub: "NAND Flash Storage"
+                    sub: isIntel ? "NAND / bộ điều khiển" : "NAND Flash Storage"
                 )
                 sensorTile(
                     title: "Hotspot Bo mạch",
                     temp: thermalManager.hotspotTemp,
                     icon: "thermometer.sun.fill",
-                    sub: "PMU Calibration"
+                    sub: isIntel ? "Chip PCH" : "PMU Calibration"
                 )
             }
         }
@@ -2293,7 +2304,7 @@ struct ThermalAndFanCardView: View {
                         .font(.system(size: 8.5))
                         .foregroundStyle(Color.accentColor)
 
-                    Text("Chi tiết \(thermalManager.detailedSensors.count) cảm biến PMU trên chip")
+                    Text("Chi tiết \(thermalManager.detailedSensors.count) cảm biến \(isIntel ? "SMC" : "PMU trên chip")")
                         .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.primary)
 
@@ -2332,6 +2343,112 @@ struct ThermalAndFanCardView: View {
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.02)))
             }
         }
+    }
+
+    private var isIntel: Bool { thermalManager.platform == .intel }
+
+    // MARK: - 2b. Platform Picker
+
+    private var platformPickerRow: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "cpu.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(Color.accentColor)
+            Text("Loại chip:")
+                .font(.system(size: 8))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 2)
+            platformButton(.auto, title: "Tự động (\(HardwarePlatform.detected.displayName))")
+            platformButton(.appleSilicon, title: "Apple Silicon")
+            platformButton(.intel, title: "Intel")
+        }
+        .padding(6)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.03)))
+        .help("Mặc định tự nhận diện. Chỉ chọn tay khi app nhận sai loại chip.")
+    }
+
+    private func platformButton(_ preference: PlatformPreference, title: String) -> some View {
+        let isSelected = thermalManager.platformPreference == preference
+        return Button {
+            thermalManager.platformPreference = preference
+        } label: {
+            Text(title)
+                .font(.system(size: 8, weight: isSelected ? .bold : .medium))
+                .lineLimit(1)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
+                .background(Capsule().fill(isSelected ? Color.accentColor : Color.primary.opacity(0.06)))
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - 3b. Fans & Power (Intel SMC)
+
+    private var fansCard: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("Quạt tản nhiệt (chỉ đọc)", systemImage: "fanblades.fill")
+                .font(.system(size: 9.5, weight: .bold))
+            ForEach(thermalManager.fans) { fan in
+                let span = max(1, fan.maxRPM - fan.minRPM)
+                let fraction = min(1, max(0, (fan.rpm - fan.minRPM) / span))
+                VStack(spacing: 2) {
+                    HStack {
+                        Text("Quạt \(fan.index + 1)")
+                            .font(.system(size: 8, weight: .medium))
+                        Spacer()
+                        Text("\(Int(fan.rpm)) vòng/phút")
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        Text("(\(Int(fan.minRPM))–\(Int(fan.maxRPM)))")
+                            .font(.system(size: 7))
+                            .foregroundStyle(.tertiary)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.primary.opacity(0.06))
+                            Capsule().fill(fraction > 0.7 ? Color.red : (fraction > 0.35 ? Color.orange : Color.cyan))
+                                .frame(width: max(4, geo.size.width * fraction))
+                        }
+                    }
+                    .frame(height: 4)
+                }
+            }
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+        )
+    }
+
+    private var powerCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label("Công suất tiêu thụ", systemImage: "bolt.fill")
+                .font(.system(size: 9.5, weight: .bold))
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 5), GridItem(.flexible(), spacing: 5)], spacing: 4) {
+                ForEach(thermalManager.powerReadings) { power in
+                    HStack {
+                        Text(power.name)
+                            .font(.system(size: 7.5, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Spacer(minLength: 2)
+                        Text(String(format: "%.1f W", power.watts))
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.03)))
+                }
+            }
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+        )
     }
 
     private func tempColor(_ temp: Double) -> Color {

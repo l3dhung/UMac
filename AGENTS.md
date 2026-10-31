@@ -44,7 +44,8 @@ swift build -c release
 | `Sources/ClipboardManager.swift` | Lịch sử clipboard, giới hạn lưu, retention, HUD panel |
 | `Sources/ClipboardOverlayView.swift` | UI bảng Clipboard HUD |
 | `Sources/AltTabOverlayView.swift` | UI HUD AltTab |
-| `Sources/ThermalManager.swift` | Đọc nhiệt độ HID/PMU + trạng thái thermal (KHÔNG điều khiển quạt) |
+| `Sources/ThermalManager.swift` | Nhận diện chip (`HardwarePlatform`, tuỳ chọn `hardware_platform`), đọc nhiệt độ HID/PMU (Apple Silicon) hoặc SMC (Intel) + trạng thái thermal (KHÔNG điều khiển quạt) |
+| `Sources/IntelSMCReader.swift` | Đọc SMC trên Mac Intel (chỉ đọc, không root): mọi khóa nhiệt `T***`, quạt `F*Ac/Mn/Mx`, công suất `P***` |
 | `Sources/DiskSpeedManager.swift` | Đo tốc độ đọc/ghi ổ vật lý (IOKit), interface LAN cho NAS, I/O theo tiến trình |
 | `Sources/BatteryManager.swift` | Khóa sạc 80%, cài/gỡ helper SMC (chỉ Apple Silicon) |
 | `Sources/CleanerManager.swift` | Dọn rác, gỡ app sạch, tìm file lớn — chỉ chuyển vào Thùng rác |
@@ -197,6 +198,13 @@ swift build -c release
 - **Gỡ ứng dụng:** quét `/Applications`, `~/Applications` (bỏ app Apple). File sót chỉ khớp **chính xác** bundle ID hoặc tên app (≥ 4 ký tự) trong `~/Library`. Không gỡ khi app đang chạy.
 - **File lớn:** `mdfind` theo kích thước, bỏ `~/Library`, thư mục ẩn, symlink và file nằm trong gói (`.app`, `.photoslibrary`, `.framework`...). Không chọn sẵn.
 - Xóa = `NSWorkspace.recycle` (vào Thùng rác, khôi phục được). Không bao giờ xóa vĩnh viễn hay dùng root.
+
+## 6.2. Hỗ trợ Mac Intel (tab Phần cứng)
+
+- **Loại chip:** `HardwarePlatform.detected` dùng `hw.optional.arm64` (đúng cả khi chạy qua Rosetta). Người dùng có thể ép "Apple Silicon"/"Intel" ở thẻ Nhiệt độ (UserDefaults `hardware_platform` = `auto|appleSilicon|intel`). Lựa chọn này chỉ đổi nguồn cảm biến; helper khóa sạc vẫn theo phần cứng thật (`BatteryManager.isAppleSilicon`).
+- **Pin:** Intel báo `CurrentCapacity/MaxCapacity` theo **mAh** và không có `NominalChargeCapacity`. `refreshBatteryInfo()` nhận diện theo dữ liệu (`MaxCapacity > 100` ⇒ mAh): % = Raw/Max (đầy ⇒ 100), sức khỏe = Max/Design. `TimeRemaining = 65535` nghĩa là chưa ước lượng ⇒ 0.
+- **Nhiệt độ Intel:** `IntelSMCReader` mở user client `AppleSMC` (selector 2, struct 80 byte), duyệt `#KEY` một lần (~0.3s, chạy trên `smcQueue`) để lấy mọi khóa `T***` trả về 10–125°C. Tóm tắt: CPU TB = TC1C…TC9C, CPU nóng nhất = max(nhân, TC0D/TCXC/TC0F/TC0E/TC0P), GPU = TG0D/TG0P/TCGC, Pin = TB0T, SSD = max TH*, Hotspot = TPCD.
+- **Không bao giờ ghi SMC** từ app. Khóa sạc Intel (`BCLM`) cần root ⇒ chưa làm.
 
 ## 7. Chứng chỉ ký cố định (bắt buộc cho TCC)
 

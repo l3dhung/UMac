@@ -12,6 +12,44 @@ public struct SensorReading: Identifiable, Equatable {
     public let category: String
 }
 
+// MARK: - Hardware Platform
+
+/// Nguồn dữ liệu cảm biến: Apple Silicon (IOHID/PMU) hoặc Intel (SMC).
+public enum HardwarePlatform: String, CaseIterable {
+    case appleSilicon
+    case intel
+
+    /// Nhận diện phần cứng thật (đúng cả khi app chạy qua Rosetta).
+    public static let detected: HardwarePlatform = {
+        var value: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        let isArm = sysctlbyname("hw.optional.arm64", &value, &size, nil, 0) == 0 && value == 1
+        return isArm ? .appleSilicon : .intel
+    }()
+
+    public var displayName: String {
+        switch self {
+        case .appleSilicon: return "Apple Silicon"
+        case .intel: return "Intel"
+        }
+    }
+}
+
+/// Lựa chọn của người dùng: tự nhận diện hoặc ép một nền tảng.
+public enum PlatformPreference: String, CaseIterable {
+    case auto
+    case appleSilicon
+    case intel
+
+    public var platform: HardwarePlatform {
+        switch self {
+        case .auto: return HardwarePlatform.detected
+        case .appleSilicon: return .appleSilicon
+        case .intel: return .intel
+        }
+    }
+}
+
 // MARK: - Native Apple Silicon IOHID Temperature Reader
 
 private typealias ClientRef = OpaquePointer
@@ -145,6 +183,23 @@ public class ThermalManager: ObservableObject {
 
     // Detailed Sensor Breakdown
     @Published public var detailedSensors: [SensorReading] = []
+
+    // Intel SMC: quạt & công suất (Apple Silicon để trống)
+    @Published var fans: [IntelSMCReader.Fan] = []
+    @Published var powerReadings: [IntelSMCReader.Power] = []
+
+    /// Tự nhận diện chip hoặc ép nền tảng — dùng khi cài trên máy khác hoặc nhận diện sai.
+    @Published public var platformPreference: PlatformPreference = PlatformPreference(
+        rawValue: UserDefaults.standard.string(forKey: "hardware_platform") ?? ""
+    ) ?? .auto {
+        didSet {
+            UserDefaults.standard.set(platformPreference.rawValue, forKey: "hardware_platform")
+            resetReadings()
+            refreshMetrics()
+        }
+    }
+
+    public var platform: HardwarePlatform { platformPreference.platform }
     @Published public var isDetailExpanded: Bool = false
 
     // UI View State (Stored here to prevent CommandLineTools SwiftUIMacros @State crash)
@@ -164,7 +219,11 @@ public class ThermalManager: ObservableObject {
     }
     public var onMenuBarUpdate: ((String?) -> Void)?
 
-    private let hidReader = AppleSiliconHIDReader()
+    private lazy var hidReader = AppleSiliconHIDReader()
+    private lazy var smcReader = IntelSMCReader()
+    /// Lần đọc SMC đầu tiên phải duyệt ~1000 khóa (~0.3s) → chạy nền, không chặn UI.
+    private let smcQueue = DispatchQueue(label: "hypermac.smc", qos: .utility)
+    private var isSMCReadInFlight = false
     private var pollTimer: Timer?
 
     private init() {
@@ -231,15 +290,19 @@ public class ThermalManager: ObservableObject {
     }
 
     public func refreshMetrics() {
-        // 1. Read Apple Silicon HID Temperatures
-        let (cpu, peak, gpu, bat, nand, hot, sensors) = hidReader.readTemperatures()
-        if cpu > 0 { self.cpuAvgTemp = cpu }
-        if peak > 0 { self.cpuPeakTemp = peak }
-        if gpu > 0 { self.gpuAvgTemp = gpu }
-        if bat > 0 { self.batteryTemp = bat }
-        if nand > 0 { self.ssdTemp = nand }
-        if hot > 0 { self.hotspotTemp = hot }
-        if !sensors.isEmpty { self.detailedSensors = sensors }
+        // 1. Read temperatures (Apple Silicon HID hoặc Intel SMC)
+        if platform == .intel {
+            refreshIntelSMC()
+        } else {
+            let (cpu, peak, gpu, bat, nand, hot, sensors) = hidReader.readTemperatures()
+            if cpu > 0 { self.cpuAvgTemp = cpu }
+            if peak > 0 { self.cpuPeakTemp = peak }
+            if gpu > 0 { self.gpuAvgTemp = gpu }
+            if bat > 0 { self.batteryTemp = bat }
+            if nand > 0 { self.ssdTemp = nand }
+            if hot > 0 { self.hotspotTemp = hot }
+            if !sensors.isEmpty { self.detailedSensors = sensors }
+        }
 
         // 2. Read System Thermal Pressure
         let state = ProcessInfo.processInfo.thermalState
@@ -267,6 +330,62 @@ public class ThermalManager: ObservableObject {
 
     @objc private func thermalStateChanged() {
         refreshMetrics()
+    }
+
+    private func resetReadings() {
+        cpuAvgTemp = 0
+        cpuPeakTemp = 0
+        gpuAvgTemp = 0
+        batteryTemp = 0
+        ssdTemp = 0
+        hotspotTemp = 0
+        detailedSensors = []
+        fans = []
+        powerReadings = []
+    }
+
+    private func refreshIntelSMC() {
+        guard !isSMCReadInFlight else { return }
+        isSMCReadInFlight = true
+        let reader = smcReader
+
+        smcQueue.async { [weak self] in
+            let snapshot = reader.read()
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isSMCReadInFlight = false
+                guard self.platform == .intel else { return }
+                self.applyIntelSnapshot(snapshot)
+                self.updateMenuBarDisplay()
+            }
+        }
+    }
+
+    private func applyIntelSnapshot(_ snapshot: IntelSMCReader.Snapshot) {
+        let temps = snapshot.temperatures
+        func value(_ key: String) -> Double? { temps.first { $0.name == key }?.temp }
+        func average(_ values: [Double]) -> Double { values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count) }
+
+        // TC1C…TC9C = từng nhân; máy cũ chỉ có TC0P/TC0D/TCXC.
+        let cores = temps.filter { $0.name.count == 4 && $0.name.hasPrefix("TC") && $0.name.hasSuffix("C")
+            && $0.name != "TCGC" && $0.name != "TCXC" && $0.name != "TC0C" }.map(\.temp)
+        let dies = ["TC0D", "TCXC", "TC0F", "TC0E", "TC0P"].compactMap(value)
+
+        cpuAvgTemp = cores.isEmpty ? (dies.first ?? 0) : average(cores)
+        cpuPeakTemp = (cores + dies).max() ?? 0
+        gpuAvgTemp = value("TG0D") ?? value("TG0P") ?? value("TCGC") ?? 0
+        batteryTemp = value("TB0T") ?? average(temps.filter { $0.category == "Pin" }.map(\.temp))
+        ssdTemp = temps.filter { $0.category == "Ổ cứng" }.map(\.temp).max() ?? 0
+        hotspotTemp = value("TPCD") ?? temps.filter { $0.category == "Bo mạch" }.map(\.temp).max() ?? 0
+
+        let order = ["CPU", "GPU", "RAM", "Ổ cứng", "Pin", "Bo mạch", "Vỏ máy"]
+        detailedSensors = temps.sorted {
+            let a = order.firstIndex(of: $0.category) ?? order.count
+            let b = order.firstIndex(of: $1.category) ?? order.count
+            return a != b ? a < b : $0.name < $1.name
+        }
+        fans = snapshot.fans
+        powerReadings = snapshot.power.sorted { $0.watts > $1.watts }
     }
 
     public func updateMenuBarDisplay() {
