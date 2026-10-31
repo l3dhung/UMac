@@ -3,7 +3,7 @@ import AppKit
 
 // MARK: - Cleaner Models
 
-public struct CleanupItem: Identifiable, Hashable {
+public struct CleanupItem: Identifiable, Hashable, Sendable {
     public var id: URL { url }
     public let url: URL
     public let name: String

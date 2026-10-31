@@ -32,11 +32,11 @@ public class BatteryManager: ObservableObject {
     @Published public var hasLegacyHelper: Bool = false
 
     /// Helper nằm trong thư mục root-owned; sudoers chỉ cho đúng user đã cài chạy 3 lệnh cố định.
-    public static let helperPath = "/Library/PrivilegedHelperTools/com.l3dhung.umac/umac-power"
-    static let legacySudoersPath = "/etc/sudoers.d/displaycontrol_power"
+    nonisolated public static let helperPath = "/Library/PrivilegedHelperTools/com.l3dhung.umac/umac-power"
+    nonisolated static let legacySudoersPath = "/etc/sudoers.d/displaycontrol_power"
 
     /// Binary smc đi kèm chỉ có bản arm64 và khóa CHTE chỉ có trên Apple Silicon.
-    public static let isAppleSilicon: Bool = {
+    nonisolated public static let isAppleSilicon: Bool = {
         var value: Int32 = 0
         var size = MemoryLayout<Int32>.size
         return sysctlbyname("hw.optional.arm64", &value, &size, nil, 0) == 0 && value == 1
@@ -501,17 +501,7 @@ public class BatteryManager: ObservableObject {
     }
 
     private func sendNotification(title: String, body: String) {
-        let escapedTitle = title.replacingOccurrences(of: "\"", with: "\\\"")
-        let escapedBody = body.replacingOccurrences(of: "\"", with: "\\\"")
-        let script = "display notification \"\(escapedBody)\" with title \"\(escapedTitle)\" sound name \"Submarine\""
-        // Truyền thẳng qua argv, không qua shell: dấu ' trong nội dung không phá được lệnh.
-        DispatchQueue.global(qos: .utility).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-            process.arguments = ["-e", script]
-            try? process.run()
-            process.waitUntilExit()
-        }
+        postUserNotification(title: title, body: body, sound: "Submarine")
     }
 
     public func checkSMCBypassStatus() {

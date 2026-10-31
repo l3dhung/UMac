@@ -2,9 +2,9 @@
 set -e
 
 echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║          UMac — Build Script         ║"
-echo "╚══════════════════════════════════════════╝"
+echo "╔══════════════════════════════╗"
+echo "║     UMac — Build Script      ║"
+echo "╚══════════════════════════════╝"
 echo ""
 
 # ── Step 0: Terminate existing instances ──
@@ -14,7 +14,7 @@ pkill -9 DisplayControl 2>/dev/null || true
 pkill -9 HyperMac 2>/dev/null || true  # tên cũ trước khi đổi thành UMac
 sleep 0.5
 
-# ── Step 1: Build (Default: Apple Silicon chip M / Optional: --universal) ──
+# ── Step 1: Build (mặc định: kiến trúc của máy đang build / tuỳ chọn: --universal) ──
 BUILD_UNIVERSAL=false
 for arg in "$@"; do
     if [ "$arg" = "--universal" ]; then
@@ -47,7 +47,7 @@ if [ "$BUILD_UNIVERSAL" = "true" ]; then
         cp .build/bin_arm64/UMac "$BINARY"
     fi
 else
-    echo "⚡ Building UMac (Tốc độ cao - Chip M: M1/M2/M3/M4)..."
+    echo "⚡ Building UMac ($(uname -m))..."
     swift build -c release
     BINARY=".build/release/UMac"
 fi
@@ -72,9 +72,9 @@ mkdir -p "${MACOS}" "${RESOURCES}"
 
 cp "$BINARY" "${MACOS}/"
 
-# Copy Resources (AppIcon.icns, cover.jpg, SMC tools, etc.)
+# Copy Resources (AppIcon.icns, SMC tools, helper scripts)
 if [ -d "Resources" ]; then
-    echo "🎨 Copying app resources (icons, cover image, SMC tools)..."
+    echo "🎨 Copying app resources (icon, SMC tools)..."
     cp -R Resources/* "${RESOURCES}/"
     chmod +x "${RESOURCES}/smc" "${RESOURCES}/umac-power" "${RESOURCES}/install-helper.sh" 2>/dev/null || true
 fi

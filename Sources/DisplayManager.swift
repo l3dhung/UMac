@@ -43,7 +43,6 @@ public class DisplayManager: ObservableObject {
             gIsMouseChordEnabled = isMouseChordEnabled
         }
     }
-    @Published public var isRefreshing: Bool = false
     @Published public var hasAccessibility: Bool = false
     @Published public var selectedMainTab: Int = 0
     @Published public var alertMessage: String? = nil
@@ -117,14 +116,6 @@ public class DisplayManager: ObservableObject {
     }
 
     // MARK: - Refresh Displays
-
-    public func refresh() {
-        isRefreshing = true
-        refreshDisplays()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.isRefreshing = false
-        }
-    }
 
     public func refreshDisplays() {
         var displayIDs = [CGDirectDisplayID](repeating: 0, count: 16)
@@ -227,10 +218,6 @@ public class DisplayManager: ObservableObject {
     }
 
     // MARK: - Selection
-
-    public func selectMonitor(_ monitor: DisplayInfo) {
-        selectedID = monitor.id
-    }
 
     public var selectedMonitor: DisplayInfo? {
         monitors.first { $0.id == selectedID } ?? monitors.first
@@ -496,10 +483,6 @@ public class DisplayManager: ObservableObject {
     }
 
     // MARK: - Quick Presets
-
-    public func setQuickBrightness(_ percent: Double, for monitor: DisplayInfo) {
-        setBrightness(percent, for: monitor)
-    }
 
     public func connectAllDisplays() {
         for monitor in monitors where !monitor.isConnected {

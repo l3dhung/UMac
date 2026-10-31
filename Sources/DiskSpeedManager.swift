@@ -32,7 +32,8 @@ struct DiskSpeedSnapshot {
 
 /// Đọc bộ đếm IOKit của từng ổ vật lý, bộ đếm interface mạng (cho NAS/SMB)
 /// và bộ đếm I/O theo tiến trình; sau đó quy ra MB/s theo delta thời gian.
-final class DiskSpeedSampler {
+/// Chỉ được dùng trên `DiskSpeedManager.queue` (serial) nên an toàn khi chuyển luồng.
+final class DiskSpeedSampler: @unchecked Sendable {
     private var lastTime: TimeInterval = 0
     private var prevDisks: [String: (r: UInt64, w: UInt64)] = [:]
     private var prevNetwork: [String: (r: UInt64, w: UInt64)] = [:]
@@ -481,14 +482,9 @@ public final class DiskSpeedManager: ObservableObject {
     private var timer: Timer?
     private var isSampling = false
     private var isPopoverVisible = false
-    private let debugLogging = ProcessInfo.processInfo.environment["UMAC_DISKSPEED_DEBUG"] == "1"
 
     private init() {
-        let fakePreview = ProcessInfo.processInfo.environment["UMAC_DISKSPEED_FAKE"] == "1"
-        isEnabled = fakePreview || UserDefaults.standard.bool(forKey: Self.defaultsKey)
-        if fakePreview {
-            applyFakePreviewSnapshot()
-        }
+        isEnabled = UserDefaults.standard.bool(forKey: Self.defaultsKey)
     }
 
     /// Bật/tắt đo tốc độ. Khi tắt, timer dừng và mọi bộ đếm được xoá.
@@ -514,26 +510,11 @@ public final class DiskSpeedManager: ObservableObject {
         }
     }
 
-    /// Chỉ dùng khi kiểm thử layout: nạp số liệu giả để chụp giao diện.
-    private func applyFakePreviewSnapshot() {
-        disks = [
-            DiskSpeedInfo(bsdName: "disk4", displayName: "U280-Pro", readMBps: 92.4, writeMBps: 0),
-            DiskSpeedInfo(bsdName: "disk0", displayName: "SSD nội bộ", readMBps: 6.2, writeMBps: 781.5)
-        ]
-        totalReadMBps = 98.6
-        totalWriteMBps = 781.5
-        networkReadMBps = 112.8
-        networkWriteMBps = 1.2
-        networkLabel = "LAN en0"
-        topProcessName = "Finder"
-        topProcessReadMBps = 92.4
-        topProcessWriteMBps = 780.1
-    }
-
     private func start() {
         guard isEnabled, isPopoverVisible, timer == nil else { return }
+        // Timer gắn vào RunLoop.main nên closure luôn chạy trên main thread.
         let pollTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.tick()
+            MainActor.assumeIsolated { self?.tick() }
         }
         RunLoop.main.add(pollTimer, forMode: .common)
         timer = pollTimer
@@ -543,7 +524,9 @@ public final class DiskSpeedManager: ObservableObject {
         timer?.invalidate()
         timer = nil
         isSampling = false
-        sampler.reset()
+        // reset trên cùng queue với sample() để không ghi đồng thời bộ đếm.
+        let sampler = self.sampler
+        queue.async { sampler.reset() }
         // Xoá số liệu cũ để UI trở về trạng thái trống ngay lập tức.
         disks = []
         totalReadMBps = 0
@@ -559,10 +542,11 @@ public final class DiskSpeedManager: ObservableObject {
     private func tick() {
         guard !isSampling else { return }
         isSampling = true
+        let sampler = self.sampler
         queue.async { [weak self] in
-            guard let self else { return }
-            let snapshot = self.sampler.sample()
+            let snapshot = sampler.sample()
             DispatchQueue.main.async {
+                guard let self else { return }
                 // Bỏ kết quả nếu người dùng vừa tắt đo / đóng popover.
                 guard self.timer != nil else {
                     self.isSampling = false
@@ -585,11 +569,5 @@ public final class DiskSpeedManager: ObservableObject {
         topProcessReadMBps = snapshot.topProcessReadMBps
         topProcessWriteMBps = snapshot.topProcessWriteMBps
 
-        if debugLogging {
-            let diskText = snapshot.disks
-                .map { "\($0.bsdName)/\($0.displayName) r\(String(format: "%.1f", $0.readMBps)) w\(String(format: "%.1f", $0.writeMBps))" }
-                .joined(separator: ", ")
-            appLog("💾 DiskSpeed: total r\(String(format: "%.2f", snapshot.totalReadMBps)) w\(String(format: "%.2f", snapshot.totalWriteMBps)) MB/s | net \(snapshot.networkLabel ?? "-") r\(String(format: "%.2f", snapshot.networkReadMBps)) w\(String(format: "%.2f", snapshot.networkWriteMBps)) | proc \(snapshot.topProcessName ?? "-") | \(diskText)")
-        }
     }
 }

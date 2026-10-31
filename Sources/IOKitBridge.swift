@@ -58,7 +58,6 @@ public let kIODisplayOnlyPreferredName: UInt32 = 0x00000200
 public let kDisplayVendorIDKey = "DisplayVendorID"
 public let kDisplayProductIDKey = "DisplayProductID"
 public let kDisplayProductNameKey = "DisplayProductName"
-public let kIOMainPort: mach_port_t = 0
 
 @_silgen_name("IODisplayCreateInfoDictionary")
 public func IODisplayCreateInfoDictionary(

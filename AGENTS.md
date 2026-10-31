@@ -1,374 +1,137 @@
 # AGENTS.md — UMac
 
-> Tài liệu dành cho AI coding agent (Antigravity IDE, OpenCode, Cursor, Claude Code…) đọc trước khi chỉnh sửa dự án. Cập nhật lần cuối: **2026-10-31 (v1.0.0)**. UMac là fork của HyperMac v1.6.0; các mục 5–6 ghi lịch sử từ HyperMac.
+> Tài liệu cho AI coding agent và người đóng góp, đọc trước khi sửa dự án.
+> Cập nhật: **2026-10-31 (v1.0.0)**.
 
 ## 1. Tổng quan
 
-- **UMac** là app menu bar thuần Swift cho macOS 14+ (Apple Silicon & Intel), dùng SwiftPM + AppKit + SwiftUI.
-- Giấy phép: MIT (`LICENSE`, giữ bản quyền HyperMac gốc). `Resources/smc` là GPL-2.0 — xem `THIRD_PARTY_NOTICES.md`; không gộp nó vào MIT.
-- Bundle ID: `com.l3dhung.umac`, tên app: `UMac`, chạy ẩn Dock (`LSUIElement`).
-- Tính năng: chia cửa sổ (Rectangle), AltTab, lịch sử Clipboard, khóa sạc 80%, chỉnh sáng màn ngoài, chống sleep, đo nhiệt độ.
-- **Fan Control đã bị gỡ bỏ hoàn toàn từ v1.5.2.** Không thêm lại logic ghi SMC/điều khiển quạt trừ khi người dùng yêu cầu rõ ràng.
+- **UMac** là app menu bar thuần Swift cho macOS 14+ (Apple Silicon & Intel), dùng SwiftPM + AppKit + SwiftUI. Fork từ HyperMac v1.6.0.
+- Bundle ID `com.l3dhung.umac`, chạy ẩn Dock (`LSUIElement`). Repo phát hành: `l3dhung/UMac`.
+- Tính năng: chia cửa sổ, AltTab, lịch sử Clipboard, Dọn dẹp, khóa sạc 80% (Apple Silicon), màn hình ngoài, chống ngủ, nhiệt độ/quạt/công suất, đo tốc độ chép file.
+- Giấy phép: MIT (`LICENSE`, giữ bản quyền HyperMac gốc). `Resources/smc` là **GPL-2.0** (smcFanControl) — xem `THIRD_PARTY_NOTICES.md`; không gộp nó vào MIT.
 
 ## 2. Build & kiểm tra
 
 ```bash
-# Chỉ biên dịch (không cài, không kill app đang chạy)
-swift build -c release
-
-# Build + đóng gói .app + .zip, KHÔNG cài vào /Applications
-./build.sh --no-run
-
-# Build + cài /Applications + chạy (sẽ pkill UMac trước)
-./build.sh
+swift build -c release   # chỉ biên dịch
+./build.sh --no-run      # build + đóng gói build/UMac.app + build/UMac.zip, không cài
+./build.sh               # build + cài /Applications/UMac.app + chạy (tắt UMac đang chạy trước)
 ```
 
-- `xcodebuild` không bắt buộc; máy hiện tại chỉ có Command Line Tools và build bằng SwiftPM.
-- Log runtime: `/tmp/umac.log` (hàm `appLog()` trong `Sources/Logger.swift`).
-- App đang chạy: `pgrep -xl UMac`.
-- **Chữ ký code:** dùng identity self-signed cố định `UMac Self-Signed`
-  (tạo bởi `./scripts/setup-signing-identity.sh`). Tuyệt đối không quay lại
-  `codesign -s -` (ad-hoc) vì mỗi lần build sẽ sinh cdhash mới và macOS thu hồi
-  quyền Accessibility → `⌘Tab` / `⌘⇧C` chết. Xem mục 7.
+- Chỉ cần Command Line Tools; không dùng Xcode project.
+- Build phải **0 warning**. Giữ `swift-tools-version: 5.9` (Swift 5 language mode).
+- Log runtime: `/tmp/umac.log` (`appLog()` trong `Sources/Logger.swift`).
+- `build.sh` tự gỡ `HyperMac.app`/`DisplayControl.app` cũ và chép `LICENSE`, `THIRD_PARTY_NOTICES.md`, `GPL-2.0.txt` vào gói app.
 
 ## 3. Bản đồ mã nguồn
 
 | File | Vai trò |
 |---|---|
-| `Sources/AppMain.swift` | Entry point, `AppDelegate`, menu bar status item, popover |
-| `Sources/Views.swift` | Toàn bộ UI SwiftUI (main popover, settings, pin, display, thermal) |
-| `Sources/WindowManager.swift` | AltTab: liệt kê cửa sổ AX/CG, HUD, MRU, chụp thumbnail nền |
-| `Sources/WindowSnapManager.swift` | Chia cửa sổ & chuyển màn hình |
-| `Sources/KeyInterceptor.swift` | CGEventTap toàn cục: phím tắt, media keys, clipboard HUD keys |
-| `Sources/AccessibilityRecovery.swift` | Tự reset + prompt lại quyền Accessibility sau update |
-| `Sources/ClipboardManager.swift` | Lịch sử clipboard, giới hạn lưu, retention, HUD panel |
-| `Sources/ClipboardOverlayView.swift` | UI bảng Clipboard HUD |
-| `Sources/AltTabOverlayView.swift` | UI HUD AltTab |
-| `Sources/ThermalManager.swift` | Nhận diện chip (`HardwarePlatform`, tuỳ chọn `hardware_platform`), đọc nhiệt độ HID/PMU (Apple Silicon) hoặc SMC (Intel) + trạng thái thermal (KHÔNG điều khiển quạt) |
-| `Sources/IntelSMCReader.swift` | Đọc SMC trên Mac Intel (chỉ đọc, không root): mọi khóa nhiệt `T***`, quạt `F*Ac/Mn/Mx`, công suất `P***` |
-| `Sources/DiskSpeedManager.swift` | Đo tốc độ đọc/ghi ổ vật lý (IOKit), interface LAN cho NAS, I/O theo tiến trình |
-| `Sources/BatteryManager.swift` | Khóa sạc 80%, cài/gỡ helper SMC (chỉ Apple Silicon) |
-| `Sources/CleanerManager.swift` | Dọn rác, gỡ app sạch, tìm file lớn — chỉ chuyển vào Thùng rác |
-| `Sources/CleanerViews.swift` | UI tab "Dọn dẹp" |
-| `Sources/DisplayManager.swift` | Độ sáng, DDC/CI, màn hình ảo |
-| `Sources/VirtualDisplayManager.swift` + `VirtualDisplayBridge/` | Cầu nối Objective-C cho màn hình ảo |
-| `Sources/CaffeinateManager.swift` | Chống sleep màn hình |
-| `Sources/UpdateManager.swift` | Kiểm tra/tải bản cập nhật từ `version.json` trên GitHub |
-| `Sources/ShellHelper.swift` | `shell()` đồng bộ + tìm binary Homebrew |
+| `AppMain.swift` | Entry point, `AppDelegate`, status item, popover |
+| `Views.swift` | UI chính: header, tab bar, tab Màn hình / Phần cứng / Phím tắt |
+| `CleanerViews.swift` | UI tab Dọn dẹp |
+| `KeyInterceptor.swift` | CGEventTap toàn cục: phím tắt, media keys, phím trong HUD |
+| `WindowManager.swift` + `AltTabOverlayView.swift` | AltTab: liệt kê cửa sổ AX/CG, MRU, thumbnail nền |
+| `WindowSnapManager.swift` | Chia cửa sổ, chuyển màn hình |
+| `ClipboardManager.swift` + `ClipboardOverlayView.swift` | Lịch sử clipboard, giới hạn/retention, HUD |
+| `CleanerManager.swift` | Dọn rác, gỡ app, tìm file lớn |
+| `BatteryManager.swift` | Thông tin pin, khóa sạc, cài/gỡ helper (chỉ Apple Silicon) |
+| `ThermalManager.swift` | Nhận diện chip, nhiệt độ HID (Apple Silicon) hoặc SMC (Intel), trạng thái thermal |
+| `IntelSMCReader.swift` | Đọc SMC trên Intel (chỉ đọc): nhiệt `T***`, quạt `F*`, công suất `P***` |
+| `DiskSpeedManager.swift` | Tốc độ đọc/ghi ổ vật lý, LAN/NAS, tiến trình đang chép |
+| `ProcessEnergyManager.swift` | Danh sách tiến trình ngốn CPU, tạm dừng/tiếp tục |
+| `DisplayManager.swift` + `OSDManager.swift` + `IOKitBridge.swift` | Độ sáng, ngắt mềm màn ngoài, OSD |
+| `VirtualDisplayManager.swift` + `VirtualDisplayBridge/` | Màn hình ảo (Obj-C bridge) |
+| `CaffeinateManager.swift` | Chống ngủ màn hình |
+| `BluetoothManager.swift` | Tắt/bật Bluetooth cho Sleep Guard |
+| `UpdateManager.swift` | Kiểm tra/tải/cài bản cập nhật |
+| `AccessibilityRecovery.swift` | Tự reset entry TCC hỏng và xin lại quyền Trợ năng |
+| `UserNotification.swift` | `postUserNotification()` dùng chung |
+| `ShellHelper.swift` | `shell()` đồng bộ |
 
 ## 4. Quy ước
 
-- UI và log dùng **tiếng Việt**; tên biến/hàm dùng tiếng Anh.
-- `@MainActor` cho các manager; cập nhật state UI phải trên main thread.
-- Tránh chạy `Process`/`shell()` nặng trên main thread (gây khựng popover).
-- Lưu cài đặt qua `UserDefaults` với key có tiền tố rõ ràng (`clipboard_*`, `fan_*` cũ đã bỏ, `show_menubar_thermal`…).
-- Không hardcode đường dẫn tuyệt đối của máy dev (ví dụ `/Users/khacdai24/...`).
-- Giữ `Package.swift` ở `swift-tools-version: 5.9` (Swift 5 language mode) để tránh lỗi concurrency nghiêm ngặt.
-- **Không tự tạo tag/release hay push bản phát hành** khi chưa được người dùng xác nhận rõ ràng. Cứ build local, test xong, chờ lệnh.
+- UI và log dùng **tiếng Việt**; tên biến/hàm tiếng Anh.
+- Manager là `@MainActor` `ObservableObject`, cập nhật state UI trên main thread.
+- Việc nặng (`Process`, quét file, IOKit lặp) chạy nền; đối tượng chỉ dùng trên một serial queue thì đánh dấu `@unchecked Sendable` kèm comment nói rõ queue đó.
+- `UserDefaults` dùng key có tiền tố rõ ràng (`clipboard_*`, `cleaner_*`, `battery_*`, `hardware_platform`…).
+- Không hardcode đường dẫn máy dev. Không để hook debug/giả lập trong code chạy thật.
+- **Không tự tạo tag/release hay push** khi chưa được người dùng xác nhận.
 
-## 5. Thay đổi v1.5.2 (2026-10-28)
+## 5. Ghi chú kỹ thuật theo tính năng
 
-### 5.1. AltTab hết delay ~0.5s
-- `WindowManager.refreshWindows()` **không còn chụp thumbnail đồng bộ**; `thumbnail = nil` khi dựng danh sách.
-- `beginThumbnailCapture()` chụp ảnh nền bằng `DispatchQueue.global(qos: .userInitiated)`, cập nhật UI trên main; có `thumbnailGeneration` để huỷ khi HUD đóng.
-- HUD được hiện ngay sau khi liệt kê cửa sổ; ảnh xem trước xuất hiện dần.
-- Giảm `AXUIElementSetMessagingTimeout` từ `0.1` → `0.05`.
-- `showOverlay()` tái sử dụng `NSHostingController` (không tạo mới mỗi lần).
-- Thêm `handleModifierReleased()`; `KeyInterceptor` gọi hàm này khi nhả `⌘/⌥`.
-- `handleShortcut()` reset `isModifierHeld`/`gIsAltTabVisible` nếu danh sách cửa sổ rỗng.
+### AltTab & phím tắt
+- `refreshWindows()` không chụp thumbnail đồng bộ; `beginThumbnailCapture()` chụp nền, có `thumbnailGeneration` để huỷ khi HUD đóng.
+- `AXUIElementSetMessagingTimeout` = 0.05s. `KeyInterceptor` gọi `handleModifierReleased()` khi nhả `⌘/⌥`.
 
-### 5.2. Clipboard: giới hạn lưu & dọn dẹp
-- `ClipboardManager.maxItemsCount`: `0` = **không giới hạn**; hỗ trợ 50/100/200/500/∞.
-- Thêm `autoCleanupDays` (UserDefaults key `clipboard_auto_cleanup_days`): `0/7/30/90` ngày.
-- `applyRetentionPolicy()` tự xoá mục **chưa ghim** cũ hơn số ngày cấu hình; chạy khi khởi động, khi thêm clip và khi đổi cài đặt.
-- `cleanupNow()` cho nút "Dọn ngay": trả về số mục đã xoá và hiện `cleanupMessage` (tự ẩn sau 3.5s). Trước đây bấm không có phản hồi nên trông như "không dọn" — thực chất chỉ xoá mục cũ hơn 30 ngày mà lịch sử toàn mục mới.
-- `requestClearAllUnpinned()` cho nút "Xoá tất cả": xoá mọi mục chưa ghim, cần bấm 2 lần (`pendingClearAllConfirm`, tự huỷ sau 4s).
-- `trimItems()` xử lý đúng trường hợp không giới hạn; luôn giữ mục đã ghim.
-- UI mới trong `Views.swift`: hàng chip giới hạn, hàng "Tự động xoá", 2 nút "Dọn ngay" / "Xoá tất cả", dòng thông báo kết quả, cảnh báo khi chọn ∞.
+### Clipboard
+- `maxItemsCount = 0` là không giới hạn; `autoCleanupDays` (0/7/30/90) chỉ xoá mục chưa ghim.
+- Phím trong HUD: `1–9` (khi ô tìm kiếm rỗng), `↑/↓`, `↵`, `⌥P`, `⌥⌫`, `⎋`; `⌘`/`⌃` được thả qua.
+- Bỏ qua nội dung có cờ `org.nspasteboard.ConcealedType`/`TransientType`/`AutoGeneratedType` và cờ riêng của 1Password, KeePassX, LastPass.
 
-### 5.3. Phím tắt Clipboard HUD
-- `KeyInterceptor.swift` xử lý khi `gIsClipboardHUDVisible`:
-  - `1–9` → `pasteItemAt(index:)` (chỉ khi ô tìm kiếm đang rỗng, cờ `gIsClipboardSearchEmpty`).
-  - `↑/↓` → `selectPrevious()/selectNext()`.
-  - `↵`/numpad Enter → `pasteSelectedItem()`.
-  - `⌥P` → `togglePinSelected()`; `⌥⌫` → `deleteSelectedItem()`; `⎋` → đóng.
-- `ClipboardManager` thêm `selectedItem`, `clampSelection()`, `selectNext/Previous`, `pasteSelectedItem`, `pasteItemAt`, `togglePinSelected`, `deleteSelectedItem`.
-- `⌘`/`⌃` được thả qua để không phá shortcut hệ thống.
-- `ClipboardOverlayView` Enter dùng mục đang chọn (không còn luôn dán mục đầu).
+### Dọn dẹp
+- Rác: `~/Library/Caches`, `~/Library/Logs`, DerivedData / CoreSimulator Caches / iOS DeviceSupport, npm, Gradle, `~/.cache` (mặc định không chọn). Bỏ `com.apple.*` và cache dịch vụ Apple không tiền tố; cache app đang chạy mặc định không chọn.
+- Gỡ app: chỉ khớp **chính xác** bundle ID hoặc tên app (≥ 4 ký tự) trong `~/Library`; không gỡ khi app đang chạy.
+- File lớn: `mdfind` theo kích thước; bỏ `~/Library`, thư mục ẩn, symlink, file trong gói (`.app`, `.photoslibrary`, `.framework`…). Không chọn sẵn.
+- Xoá luôn là `NSWorkspace.recycle` (vào Thùng rác). Không xoá vĩnh viễn, không dùng root.
 
-### 5.4. Cỡ chữ phím tắt
-- `ClipboardOverlayView.legendItem`: 7.5 → 9.5/9.
-- `AltTabOverlayView.HintChip`: 8 → 9.5.
-- `Views.swift` `shortcutPill`: 8 → 9.5/9.
+### Pin & helper khóa sạc
+- Apple Silicon báo `CurrentCapacity/MaxCapacity` theo %; Intel theo **mAh** và không có `NominalChargeCapacity`. `refreshBatteryInfo()` nhận diện theo dữ liệu (`MaxCapacity > 100` ⇒ mAh). `TimeRemaining = 65535` ⇒ chưa ước lượng.
+- Helper: `/Library/PrivilegedHelperTools/com.l3dhung.umac/{umac-power,smc}` (root:wheel). Sudoers `/etc/sudoers.d/umac_power` chỉ cho user đã cài chạy `status | charge-on | charge-off`, kiểm tra bằng `visudo -cf`.
+- `install-helper.sh install <user> <smc> <helper>` / `uninstall`; cả hai gỡ helper cũ của HyperMac (`displaycontrol_power` kiểu `ALL ALL NOPASSWD`, `hypermac_power`).
+- `smc` chỉ có arm64 và khóa `CHTE` chỉ có trên Apple Silicon ⇒ Intel hiện "chưa hỗ trợ". App **không bao giờ ghi SMC** ngoài helper này.
 
-### 5.5. Gỡ Fan Control
-- Xoá toàn bộ `activeFanControlCard`, 4 chế độ quạt, slider RPM, Smart Curve, preset RPM trong `Views.swift`.
-- `ThermalManager.swift` viết lại: chỉ còn đọc nhiệt độ HID/PMU, trạng thái thermal, pill nhiệt độ Menu Bar. Đã xoá `FanControlMode`, `ThermalSensorTarget`, `FanModel`, `detectFans`, `applyActiveFanProfile`, `restoreFansToAuto`.
-- `AppMain.applicationWillTerminate` không còn gọi `restoreFansToAuto()`.
-- `menuBarDisplayMode` bị bỏ; Menu Bar chỉ hiện `44°C`.
-- Tab "Quạt & Nhiệt độ" đổi thành **"Nhiệt độ & Cảm biến"**.
+### Nhiệt độ & cảm biến
+- `HardwarePlatform.detected` dùng `hw.optional.arm64` (đúng cả khi chạy qua Rosetta). Người dùng có thể ép nền tảng (`hardware_platform` = `auto|appleSilicon|intel`); chỉ đổi nguồn cảm biến, helper vẫn theo phần cứng thật.
+- Apple Silicon: IOHID event system (`PMU tdie/tdev`, `battery`, `NAND`, `tcal`).
+- Intel: `IntelSMCReader` mở user client `AppleSMC` (selector 2, struct 80 byte), duyệt `#KEY` một lần (~0.3s, trên `smcQueue`), giữ khóa `T***` trả 10–125°C.
 
-### 5.6. Phiên bản & tài liệu
-- Bump `1.5.1` → `1.5.2` tại: `build.sh`, `Sources/UpdateManager.swift`, `version.json`, badge/README.
-- Thêm changelog v1.5.2 trong `README.md`.
-- Cần tạo tag `v1.5.2` và push để GitHub Actions tạo release khớp `version.json`.
+### Đo tốc độ chép file
+- Mặc định tắt (`disk_speed_enabled`); chỉ lấy mẫu khi popover mở (`popoverDidShow/Close`).
+- Ổ vật lý: `IOMedia` `Whole = true` có cha là `IOBlockStorageDriver` (tránh đếm trùng với `AppleAPFSContainerScheme`); bỏ disk image.
+- NAS: host từ `getmntinfo` → `route -n get` → byte counter interface qua `NET_RT_IFLIST2` (là tốc độ card mạng, có thể lẫn traffic khác).
+- `sample()` và `reset()` của `DiskSpeedSampler` đều chạy trên cùng serial queue.
 
-## 6. Thay đổi v1.6.0 (2026-10-28)
+### Bộ tự cập nhật
+- Nguồn: GitHub Releases của `l3dhung/UMac`, dự phòng `version.json` trên `main`.
+- Bản tải về phải thoả Designated Requirement của app đang chạy (`SecStaticCodeCheckValidity`: cùng bundle ID + cùng chứng chỉ). Bản build ad-hoc không tự cập nhật — chủ ý.
+- File tạm trong `FileManager.temporaryDirectory/UMacUpdate` (quyền 700).
 
-### 6.1. Đo tốc độ chép file — `Sources/DiskSpeedManager.swift`
-- UI: `FileTransferSpeedCard` trong `HardwareCareTabView`, đặt ngay dưới thanh chọn
-  Pin / Nhiệt độ (luôn hiển thị, không phụ thuộc segment đang chọn).
-- **Mặc định TẮT**: người dùng bật bằng switch trên card (lưu ở
-  `UserDefaults["disk_speed_enabled"]`). Khi tắt, không có timer, không quét ổ/tiến
-  trình, không cấp phát bộ đếm.
-- **Chỉ chạy khi popover mở**: `AppDelegate` là `NSPopoverDelegate`; `popoverDidShow`
-  → `setPopoverVisible(true)`, `popoverDidClose` → `setPopoverVisible(false)`.
-  Đóng bảng là dừng timer + `sampler.reset()` + xoá số liệu đã publish.
-- Kiến trúc: `DiskSpeedManager` (`@MainActor`, `ObservableObject`) giữ `Timer` 1s trên
-  main run loop; mỗi tick đẩy `DiskSpeedSampler.sample()` sang `DispatchQueue` nền.
-  Sampler tính delta byte / delta thời gian (`max(0.25s, …)`) → MB/s.
+## 6. Chứng chỉ ký & quyền Trợ năng
 
-**Ổ vật lý (chính xác):**
-- Duyệt `IOMedia` có `Whole = true`, lấy **cha trực tiếp**; chỉ nhận khi class cha là
-  `IOBlockStorageDriver` (nơi có property `Statistics`).
-- `AppleAPFSContainerScheme` cũng có `Statistics` riêng → nếu không lọc theo class
-  cha, tốc độ sẽ bị cộng trùng (gấp đôi) giữa `disk0` và `disk3`.
-- Bỏ qua media ảo của file `.dmg/.iso` (IORegistry name chứa `Disk Image`) để ổ
-  "Tor Browser"… không xuất hiện như ổ cứng thật.
-- Tên hiển thị: đi ngược cây IORegistry từ volume đang mount (`getmntinfo`) lên tới
-  IOMedia vật lý (`mediaEntry(forBSDName:)`), chọn volume gốc `/` hoặc volume lớn
-  nhất. Fallback: `Device Characteristics → Product Name` (`APPLE SSD…` →
-  `SSD nội bộ`), cuối cùng là BSD name.
-- Dòng chi tiết trong card hiển thị **nguồn → đích** (ổ đọc nhiều nhất → ổ ghi nhiều
-  nhất), ví dụ `U280-Pro → SSD nội bộ`; nếu cùng một ổ thì chỉ hiện tên ổ.
-
-**NAS / ổ mạng (xấp xỉ):**
-- `networkVolumeHosts()` lấy host từ `getmntinfo` (`//user@host/share`, `host:/path`).
-- `route -n get <host>` (cache 60s) → tên interface (`en0`, `en1`, …).
-- Đọc byte counter 64-bit của interface qua `sysctl` MIB
-  `[CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0]` (`if_msghdr2.ifm_data`).
-- Nếu không resolve được interface: cộng các interface `en*`/`ppp*`.
-- Đây là tốc độ **của card mạng**, không phải riêng phiên SMB → có thể lẫn traffic khác.
-
-**Tiến trình đang chép:**
-- `proc_listallpids` + `proc_pid_rusage(pid, RUSAGE_INFO_V4)` lấy
-  `ri_diskio_bytesread/written`; lưu counter của frame trước để tính delta.
-- Chỉ gắn tên tiến trình khi `peak >= 3 MB/s` **và** `peak >= 50%` tổng lưu lượng,
-  nếu không sẽ hiện nhầm I/O nền (Spotlight, `BackgroundShortcutRunner`).
-- Hạn chế đã biết: ghi qua page cache có thể xong trước nhịp lấy mẫu nên tiến trình
-  có thể không hiện (ví dụ `dd` tốc độ cao); số liệu ổ cứng vẫn đúng.
-
-**Debug:** đặt `UMAC_DISKSPEED_DEBUG=1` để log mỗi mẫu vào `/tmp/umac.log`
-(dòng `💾 DiskSpeed: …`). Hook `UMAC_DISKSPEED_TEST_HOST` đã được gỡ.
-
-### 6.2. Kiểm thử giao diện không cần chụp màn hình
-- `UMAC_PREVIEW=1` mở cửa sổ 380×570 chứa `MainView` (không tạo status item).
-- `UMAC_PREVIEW_TAB=0|1|2` chọn tab (mặc định 1).
-- `UMAC_PREVIEW_OUT=/tmp/ui.png` render thẳng ra PNG bằng `ImageRenderer`
-  rồi thoát — hữu ích khi terminal không có quyền Screen Recording.
-- `UMAC_DISKSPEED_FAKE=1` nạp số liệu giả (U280-Pro → SSD, LAN en0) để kiểm tra
-  layout dòng chi tiết. **Chỉ dùng khi phát triển**, không ảnh hưởng người dùng.
-- `UMAC_DISKSPEED_AUTOSTART=1` giả lập popover đang mở lúc khởi động;
-  `UMAC_DISKSPEED_AUTOCLOSE=<giây>` tự đóng sau N giây — dùng để kiểm tra
-  timer bật/tắt mà không cần bấm menu bar.
-- Lưu ý: `ImageRenderer` không render nội dung bên trong `ScrollView`, nên ảnh
-  preview chỉ dùng để kiểm tra phần header/tab/card, không thay thế kiểm thử thật.
-
-### 6.3. Phiên bản & tài liệu
-- Bump `1.5.2` → `1.6.0` tại: `build.sh`, `Sources/UpdateManager.swift`, `version.json`,
-  badge + nút tải trong `README.md`.
-- Thêm changelog v1.6.0 trong `README.md`.
-- Cần tạo tag `v1.6.0` và push để GitHub Actions tạo release khớp `version.json`.
-
-## 6.1. Bảo mật helper, updater & tab Dọn dẹp (nhánh `security-and-cleaner`)
-
-### Helper khóa sạc
-- Cài vào `/Library/PrivilegedHelperTools/com.l3dhung.umac/` (root:wheel), **không** dùng `/usr/local/bin` (có thể ghi bằng user → leo thang root).
-- Sudoers `/etc/sudoers.d/umac_power`: chỉ user đã cài, chỉ `status | charge-on | charge-off`, kiểm tra bằng `visudo -cf` trước khi cài.
-- `install-helper.sh install <user> <smc> <helper>` / `uninstall`; cả hai đều gỡ sudoers cũ `displaycontrol_power` (`ALL ALL NOPASSWD`).
-- Script root không còn lệnh quạt, không tìm `smc` theo PATH hay thư mục của user.
-- Binary `smc` chỉ có arm64 → trên Intel UI báo "chưa hỗ trợ", không cài helper.
-
-### Updater
-- Bản tải về phải thỏa Designated Requirement của app đang chạy (`SecStaticCodeCheckValidity`): cùng bundle ID + cùng chứng chỉ. Bản build ad-hoc sẽ không tự cập nhật — chủ ý.
-- File tạm nằm trong `FileManager.temporaryDirectory/UMacUpdate` (quyền 700), không dùng `/tmp` chung.
-
-### Tab Dọn dẹp
-- **Rác hệ thống:** `~/Library/Caches`, `~/Library/Logs`, DerivedData / CoreSimulator Caches / iOS DeviceSupport, npm, Gradle, `~/.cache` (mặc định không chọn). Bỏ qua `com.apple.*` và cache dịch vụ Apple không tiền tố; cache của app đang chạy mặc định không chọn.
-- **Gỡ ứng dụng:** quét `/Applications`, `~/Applications` (bỏ app Apple). File sót chỉ khớp **chính xác** bundle ID hoặc tên app (≥ 4 ký tự) trong `~/Library`. Không gỡ khi app đang chạy.
-- **File lớn:** `mdfind` theo kích thước, bỏ `~/Library`, thư mục ẩn, symlink và file nằm trong gói (`.app`, `.photoslibrary`, `.framework`...). Không chọn sẵn.
-- Xóa = `NSWorkspace.recycle` (vào Thùng rác, khôi phục được). Không bao giờ xóa vĩnh viễn hay dùng root.
-
-## 6.2. Hỗ trợ Mac Intel (tab Phần cứng)
-
-- **Loại chip:** `HardwarePlatform.detected` dùng `hw.optional.arm64` (đúng cả khi chạy qua Rosetta). Người dùng có thể ép "Apple Silicon"/"Intel" ở thẻ Nhiệt độ (UserDefaults `hardware_platform` = `auto|appleSilicon|intel`). Lựa chọn này chỉ đổi nguồn cảm biến; helper khóa sạc vẫn theo phần cứng thật (`BatteryManager.isAppleSilicon`).
-- **Pin:** Intel báo `CurrentCapacity/MaxCapacity` theo **mAh** và không có `NominalChargeCapacity`. `refreshBatteryInfo()` nhận diện theo dữ liệu (`MaxCapacity > 100` ⇒ mAh): % = Raw/Max (đầy ⇒ 100), sức khỏe = Max/Design. `TimeRemaining = 65535` nghĩa là chưa ước lượng ⇒ 0.
-- **Nhiệt độ Intel:** `IntelSMCReader` mở user client `AppleSMC` (selector 2, struct 80 byte), duyệt `#KEY` một lần (~0.3s, chạy trên `smcQueue`) để lấy mọi khóa `T***` trả về 10–125°C. Tóm tắt: CPU TB = TC1C…TC9C, CPU nóng nhất = max(nhân, TC0D/TCXC/TC0F/TC0E/TC0P), GPU = TG0D/TG0P/TCGC, Pin = TB0T, SSD = max TH*, Hotspot = TPCD.
-- **Không bao giờ ghi SMC** từ app. Khóa sạc Intel (`BCLM`) cần root ⇒ chưa làm.
-
-## 7. Chứng chỉ ký cố định (bắt buộc cho TCC)
-
-**Vấn đề:** ký ad-hoc (`codesign -s -`) khiến cdhash đổi sau mỗi lần build →
-macOS coi là app khác → **thu hồi quyền Accessibility** → `⌘Tab`, `⌘⇧C` không chạy
-cho tới khi người dùng cấp lại tay.
-
-**Giải pháp đã áp dụng:** chứng chỉ self-signed cố định `UMac Self-Signed`.
+Ký ad-hoc làm cdhash đổi mỗi lần build ⇒ macOS thu hồi quyền Trợ năng. Dùng chứng chỉ self-signed cố định:
 
 ```bash
-./scripts/setup-signing-identity.sh   # chạy 1 lần
-./build.sh                            # build.sh tự dùng identity này
+./scripts/setup-signing-identity.sh   # 1 lần: tạo "UMac Self-Signed" trong ~/.umac-signing (mode 700)
+./build.sh                            # tự dùng identity này; override bằng UMAC_SIGN_IDENTITY
 ```
 
-- Script sinh key + cert (EKU `codeSigning`) trong `~/.umac-signing/` (mode 700),
-  import vào login keychain, rồi thêm trust policy Code Signing ở user domain.
-- `build.sh` tự dò identity; nếu có thì ký bằng nó, nếu không thì fallback ad-hoc
-  (kèm cảnh báo). Có thể override bằng biến môi trường `UMAC_SIGN_IDENTITY`.
-- Designated Requirement hiện tại (`codesign -d -r-`):
-  `identifier "com.l3dhung.umac" and certificate root = H"5f052de8…"`
-  → **không phụ thuộc nội dung binary**, nên quyền TCC giữ nguyên qua mọi rebuild.
+- Designated Requirement = `identifier "com.l3dhung.umac" and certificate root = H"…"` ⇒ không phụ thuộc nội dung binary, quyền giữ qua mọi lần build.
+- Không tạo lại cert/key đã phát hành (root hash đổi ⇒ mọi người mất quyền một lần).
+- `AccessibilityRecovery`: nếu chưa có quyền và bản build (phiên bản + cdhash) chưa từng reset, chạy `tccutil reset Accessibility com.l3dhung.umac` rồi hiện prompt — mỗi bản build chỉ một lần.
+- **Không commit** `~/.umac-signing/` hay `.p12` (`.gitignore` đã chặn `*.p12`, `*.p12.base64`).
 
-**Nếu vẫn mất quyền / app không nhận phím tắt:**
+### Ký bản phát hành trên GitHub Actions
 
-```bash
-# 1. Kiểm tra chữ ký
-codesign -dv --verbose=4 /Applications/UMac.app | grep Authority
-# 2. Xoá entry TCC cũ rồi mở lại app để prompt
-tccutil reset Accessibility com.l3dhung.umac
-open /Applications/UMac.app
-# 3. System Settings → Privacy & Security → Accessibility → bật UMac
-```
+1. `./scripts/export-ci-signing.sh` → `~/.umac-signing/ci-signing.p12(.base64)` + mật khẩu.
+2. Thêm secret `UMAC_SIGNING_P12_BASE64` và `UMAC_SIGNING_P12_PASSWORD` (nên dùng `gh secret set … < file` để tránh dán sai).
+3. Push tag `vX.Y.Z` ⇒ `.github/workflows/release.yml` import vào keychain tạm, build, verify `Authority=UMac Self-Signed`, phát hành `UMac.zip`. Thiếu secret ⇒ fallback ad-hoc kèm cảnh báo.
 
-**Không commit** `~/.umac-signing/` hay file `.p12` vào repo (chứa private key).
-`.gitignore` đã chặn `*.p12` và `*.p12.base64`.
+Bẫy đã gặp (đừng sửa lại thành sai):
+- p12 phải xuất dạng **legacy** (`openssl pkcs12 -export -legacy`), nếu không `security import` trên runner macOS 14 báo sai mật khẩu.
+- Không dùng `security find-identity -v` (cert tự ký trên runner là untrusted nên `-v` trả 0 identity).
+- Không dùng `base64 --decode` (macOS chỉ có `-D`); workflow decode bằng `python3`, fallback `openssl base64 -d -A`.
+- Keychain tạm phải được thêm vào **search list**, `codesign --keychain` một mình không đủ.
 
-### 7.1. Ký bản phát hành trên GitHub Actions
+Khuyến nghị bảo mật repo: environment `release` có required reviewer giữ 2 secret, ruleset chặn force-push `main`, giới hạn allowed actions, bật 2FA.
 
-Runner không có keychain của máy dev, nên phải đưa private key vào **GitHub Secrets**:
+## 7. Kiểm thử thủ công sau khi sửa
 
-1. Xuất chứng chỉ (giữ nguyên key/cert cũ để root hash không đổi):
+1. `./build.sh` không có warning; app chạy, `/tmp/umac.log` có `KeyInterceptor: Active`.
+2. `⌘Tab` hiện HUD gần như tức thì; `⌃⌥←/→/↑/↓` chia cửa sổ.
+3. `⌘⇧C`: thử `1–9`, `↑↓`, `↵`, `⌥P`, `⌥⌫`, `⎋`.
+4. Tab Dọn dẹp: quét rác, xem chi tiết, dọn một mục nhỏ rồi "Đưa trở lại" từ Thùng rác.
+5. Tab Phần cứng: % và sức khỏe pin hợp lý; thẻ nhiệt độ có số liệu (Intel: log `IntelSMCReader: … cảm biến nhiệt`).
+6. Bật "Chép file", chạy `dd if=/dev/zero of=/tmp/dstest.bin bs=1m count=600` ⇒ thấy tốc độ ghi; xoá file sau khi thử.
 
-```bash
-./scripts/export-ci-signing.sh
-# → ~/.umac-signing/ci-signing.p12
-# → ~/.umac-signing/ci-signing.p12.base64
-# → in ra mật khẩu + certificate root SHA-1
-```
-
-2. Thêm 2 secret tại `Settings → Secrets and variables → Actions`:
-   - `UMAC_SIGNING_P12_BASE64`: nội dung file `.base64`
-   - `UMAC_SIGNING_P12_PASSWORD`: mật khẩu script in ra
-
-3. Workflow `.github/workflows/release.yml` sẽ:
-   - tạo keychain tạm, import `.p12`, mở partition list cho `codesign`,
-   - **thêm keychain tạm vào search list** của user (codesign chỉ tìm identity
-     trong các keychain thuộc search list; `--keychain` một mình là không đủ),
-   - build với `UMAC_SIGN_IDENTITY=UMac Self-Signed` và
-     `UMAC_SIGN_KEYCHAIN=<keychain tạm>`,
-   - verify `Authority=UMac Self-Signed` + in DR,
-   - xoá keychain tạm ở bước `always()`.
-
-Nếu thiếu secret, workflow vẫn build nhưng **fallback ad-hoc** (kèm cảnh báo) —
-khi đó quyền Accessibility sẽ mất sau update.
-
-**Ba cái bẫy đã gặp thật (đừng sửa lại thành sai):**
-
-- **p12 phải là định dạng legacy.** OpenSSL 3 mặc định xuất MAC SHA-256 + AES/PBES2;
-  `security import` trên runner macOS 14 báo
-  `MAC verification failed during PKCS12 import (wrong password?)` dù mật khẩu đúng.
-  `scripts/export-ci-signing.sh` dùng `openssl pkcs12 -export -legacy` (SHA-1 + 3DES).
-- **Không dùng `security find-identity -v`.** Cờ `-v` chỉ liệt kê identity *đã trust*;
-  cert tự ký trên runner là untrusted nên `-v` trả 0 identity dù `codesign` ký được.
-  `build.sh` và workflow đều dùng `find-identity -p codesigning` (không `-v`).
-- **Không dùng `base64 --decode`.** `base64` của macOS 14 chỉ có `-D`; thậm chí secret
-  có thể lẫn CRLF. Workflow strip whitespace rồi decode bằng `python3`, fallback
-  `openssl base64 -d -A`, cuối cùng mới `base64 -D`, và tự nhận diện secret bị base64
-  2 lớp.
-
-**Nên set secret bằng CLI để tránh dán sai** (đã từng dán cả câu lệnh `pbcopy …`):
-
-```bash
-gh secret set UMAC_SIGNING_P12_BASE64 --repo l3dhung/UMac \
-  < ~/.umac-signing/ci-signing.p12.base64
-gh secret set UMAC_SIGNING_P12_PASSWORD --repo l3dhung/UMac \
-  --body "hm-test-pass-2026"
-```
-
-Khi bước import fail, đọc lỗi bằng annotation công khai thay vì log:
-
-```bash
-gh run view <run-id> --repo l3dhung/UMac \
-  --json jobs -q '.jobs[0].check_run_url' \
-  | xargs -I{} gh api {}/annotations --jq '.[] | "\(.title): \(.message)"'
-```
-
-**Lưu ý quan trọng:**
-- Chỉ cần **một lần** chuyển từ bản ad-hoc cũ (≤1.5.2) sang bản ký cert: TCC đổi
-  DR nên quyền mất một lần; từ các bản sau thì giữ nguyên.
-- Không bao giờ tạo lại cert/key (root hash đổi → mất quyền của mọi người).
-  Cert hiện có hạn 10 năm (`-days 3650`).
-- Secret chứa private key: nếu repo bị xâm nhập, key có thể bị lộ → phải tạo cert
-  mới và chấp nhận mất quyền một lần. Xem mục 7.3.
-
-### 7.2. Tự khôi phục quyền sau update — `Sources/AccessibilityRecovery.swift`
-
-- Gọi trong `applicationDidFinishLaunching` **trước** `KeyInterceptor.shared.start()`.
-- Mỗi lần khởi động, nếu `AXIsProcessTrusted() == false` **và**
-  `UserDefaults["ax_recovery_version"] != phiên bản hiện tại`:
-  - chạy `tccutil reset Accessibility com.l3dhung.umac` (xoá entry cũ bị kẹt),
-  - lưu `ax_recovery_version` = phiên bản hiện tại (mỗi bản chỉ reset **một lần**,
-    nên không lặp lại mỗi lần mở app và không phiền người dùng đã từ chối cấp quyền),
-  - sau 0.8s gọi `AXIsProcessTrustedWithOptions(prompt: true)` để macOS hiện hộp
-    thoại cấp lại.
-- Không cần cờ "từng được cấp quyền": entry TCC bị kẹt sau update thường vẫn hiện
-  trong System Settings nên không thể phân biệt bằng `UserDefaults`.
-- Người dùng chỉ cần bật switch trong System Settings, **không phải xoá app và thêm lại**.
-- `tccutil` chỉ reset được khi app có bundle ID hợp lệ; nếu không có, hàm bỏ qua im lặng.
-
-
-### 7.3. Bảo mật repo & khoá ký
-
-Private key trong secret = ai phát hành được app. Kiểm tra định kỳ bằng `gh`:
-
-```bash
-R=l3dhung/UMac
-gh api repos/$R --jq '.permissions'                       # quyền của token hiện tại
-gh api "repos/$R/collaborators?affiliation=direct" --jq '.[] | "\(.login) \(.role_name)"'
-gh api "repos/$R/collaborators?affiliation=outside" --jq '.[] | .login'
-gh api "repos/$R/invitations" --jq '.[] | .invitee.login'
-gh api "repos/$R/actions/secrets" --jq '.secrets[] | "\(.name) \(.updated_at)"'
-gh api "repos/$R/environments"
-gh api "repos/$R/keys"      # deploy keys
-gh api "repos/$R/hooks"     # webhooks
-```
-
-Hiện trạng (2026-10-30): chỉ owner `mrgoose000000-gif` có quyền admin; 0 outside
-collaborator/invitation/team; 2 secret đúng tên; 0 environment; 0 deploy key;
-0 webhook; `main` **chưa bảo vệ**; `allowed_actions=all`; secret scanning +
-push protection đang bật.
-
-Khuyến nghị (chưa bắt buộc, làm khi cần siết):
-
-1. **Environment `release` + Required reviewers** rồi chuyển 2 secret vào environment
-   và thêm `environment: release` cho job trong `release.yml`. Khi đó dù ai push tag,
-   workflow vẫn phải chờ duyệt mới được dùng private key.
-2. **Ruleset cho `main`**: chặn force-push và xoá nhánh (solo dev vẫn dùng được).
-3. `Settings → Actions → General`: giới hạn allowed actions + bật *Require actions to
-   be pinned to a full-length commit SHA*.
-4. Bật 2FA/passkey cho tài khoản GitHub; xoá token cũ không dùng; kiểm tra
-   `Settings → Sessions`.
-5. Giữ `~/.umac-signing/` ngoài iCloud/Dropbox và bật FileVault.
-
-## 8. Ghi chú kiểm thử
-
-- Máy test hiện tại: `Mac14,2` (MacBook Air M2, fanless), macOS 26.6.
-- `Resources/smc -f` trả `Total fans in system: 0` — bình thường với máy không quạt.
-- Kiểm tra nhanh sau khi sửa:
-  1. `⌘ + Tab` phải hiện HUD gần như tức thì (< ~100ms), thumbnail xuất hiện sau.
-  2. `⌘ + ⇧ + C` mở Clipboard; thử `1–9`, `↑↓`, `↵`, `⌥P`, `⌥⌫`, `⎋`.
-  3. Settings → Clipboard: chọn 500/∞, đổi "Tự động xoá", bấm "Dọn ngay".
-  4. Tab nhiệt độ: không còn bảng quạt; chỉ có nhiệt độ, cảm biến, pill Menu Bar.
-  5. Ô **Chép file** (tab Pin & Phần cứng): chạy `dd if=/dev/zero of=/tmp/dstest.bin bs=1m count=600`
-     → số `↑` phải nhảy lên hàng trăm MB/s và tên ổ là `Macintosh HD` / `SSD nội bộ`;
-     chép thẻ nhớ → ổ rời phải thấy tên volume của cả hai ổ trong tooltip.
-  6. NAS: mount SMB rồi chép file; chip mạng hiện `LAN enX` với tốc độ tương đương
-     lưu lượng thực (đối chiếu `netstat -ibn` trước/sau khi chép).
+Máy đã kiểm thử: MacBook Pro 13" 2018 (Intel i5-8259U, macOS 15). Phần Apple Silicon (helper khóa sạc, cảm biến HID) chưa được kiểm thử lại sau khi fork.

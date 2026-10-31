@@ -105,7 +105,6 @@ public class ClipboardManager: ObservableObject {
     @Published public var ignoreConcealedTypes: Bool = true {
         didSet { UserDefaults.standard.set(ignoreConcealedTypes, forKey: "clipboard_ignore_concealed") }
     }
-    @Published public var shortcutText: String = "⌘ + ⇧ + C"
     @Published public var isHUDVisible: Bool = false
     @Published public var selectedIndex: Int = 0
     @Published public var searchText: String = "" {
@@ -200,11 +199,6 @@ public class ClipboardManager: ObservableObject {
         }
     }
 
-    public func stopMonitoring() {
-        pollTimer?.invalidate()
-        pollTimer = nil
-    }
-
     private func checkPasteboard() {
         guard isMonitoringEnabled else { return }
 
@@ -224,6 +218,7 @@ public class ClipboardManager: ObservableObject {
         if ignoreConcealedTypes {
             let concealedTypes = [
                 "org.nspasteboard.ConcealedType",
+                "org.nspasteboard.TransientType",
                 "com.agilebits.onepassword",
                 "de.sorcerer.KeepassX",
                 "com.lastpass.LastPass",
@@ -608,13 +603,7 @@ public class ClipboardManager: ObservableObject {
         // 3. Re-activate target previous application
         let appToActivate = previousApp ?? NSWorkspace.shared.runningApplications.first(where: { $0.isActive && $0.bundleIdentifier != Bundle.main.bundleIdentifier })
 
-        if let app = appToActivate {
-            if #available(macOS 14.0, *) {
-                app.activate()
-            } else {
-                app.activate(options: [.activateIgnoringOtherApps])
-            }
-        }
+        appToActivate?.activate()
 
         // 4. Synthesize Command + V keystroke
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {

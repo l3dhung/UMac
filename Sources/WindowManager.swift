@@ -327,17 +327,6 @@ public class WindowManager: ObservableObject {
         }
     }
 
-    public func handleOptionTab(isShift: Bool) {
-        handleShortcut(isShift: isShift)
-    }
-
-    public func handleOptionReleased() {
-        isModifierHeld = false
-        if isVisible {
-            commitSelection()
-        }
-    }
-
     /// Called by the event tap when the Command/Option modifier is released.
     /// Commits even if the overlay has not finished its first frame yet.
     public func handleModifierReleased() {
@@ -416,10 +405,7 @@ public class WindowManager: ObservableObject {
 
         // 4. Activate owning application WITHOUT activateAllWindows (preserves exact z-order)
         if let app = NSRunningApplication(processIdentifier: item.pid) {
-            app.activate(options: [.activateIgnoringOtherApps])
-            if #available(macOS 14.0, *) {
-                app.activate()
-            }
+            app.activate()
         }
     }
 
@@ -545,11 +531,7 @@ public class WindowManager: ObservableObject {
         panel.setFrame(NSRect(x: posX, y: posY, width: totalWidth, height: panelHeight), display: true)
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
 
         self.isVisible = true
         gIsAltTabVisible = true

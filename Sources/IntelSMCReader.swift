@@ -8,7 +8,8 @@ import IOKit
 ///
 /// Mac Intel không có cảm biến nhiệt qua IOHID như Apple Silicon, nên ThermalManager
 /// dùng lớp này khi nền tảng là Intel.
-final class IntelSMCReader {
+/// Chỉ được dùng trên `ThermalManager.smcQueue` (serial) nên an toàn khi chuyển luồng.
+final class IntelSMCReader: @unchecked Sendable {
     struct Fan: Identifiable, Equatable {
         var id: Int { index }
         let index: Int

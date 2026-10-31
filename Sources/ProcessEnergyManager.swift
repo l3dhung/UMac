@@ -25,7 +25,6 @@ public class ProcessEnergyManager: ObservableObject {
     @Published public var isScanning: Bool = false
     @Published public var lastRefreshed: Date = Date()
 
-    private var timer: Timer?
 
     private let ignoredNames: Set<String> = [
         "kernel_task", "launchd", "WindowServer", "sysmond", "UMac",
@@ -38,20 +37,6 @@ public class ProcessEnergyManager: ObservableObject {
 
     private init() {
         refreshProcesses()
-    }
-
-    public func startAutoRefresh() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.refreshProcesses()
-            }
-        }
-    }
-
-    public func stopAutoRefresh() {
-        timer?.invalidate()
-        timer = nil
     }
 
     public func refreshProcesses() {
@@ -159,37 +144,6 @@ public class ProcessEnergyManager: ObservableObject {
         setpriority(PRIO_PROCESS, id_t(pid), 0)
         frozenPIDs.remove(pid)
         updateLocalState(pid: pid, isFrozen: false)
-    }
-
-    public func terminateProcess(pid: Int32) {
-        kill(pid, SIGTERM)
-        frozenPIDs.remove(pid)
-        processes.removeAll { $0.pid == pid }
-    }
-
-    // SAFE Software Cooling for Fanless Macs:
-    // Throttles background processes using renice +20 (idle priority) and pauses only background tasks with auto-resume.
-    // NEVER freezes the frontmost active app!
-    public func optimizeBackgroundConsumers() {
-        let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
-
-        for p in processes {
-            // Never touch the frontmost app the user is actively viewing
-            if p.pid == frontPID { continue }
-
-            // Set priority to lowest (idle cycles only) to immediately stop CPU burning
-            setpriority(PRIO_PROCESS, id_t(p.pid), 20)
-        }
-
-        // For top background processes, temporarily pause for 8 seconds to drop chip temperature, then auto-resume
-        let backgroundCandidates = processes.filter { $0.pid != frontPID && !$0.isFrozen }
-        for p in backgroundCandidates.prefix(2) {
-            freezeProcess(pid: p.pid, autoResumeAfter: 8.0)
-        }
-    }
-
-    public func freezeTopConsumers() {
-        optimizeBackgroundConsumers()
     }
 
     private func updateLocalState(pid: Int32, isFrozen: Bool) {
