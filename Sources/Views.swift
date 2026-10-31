@@ -703,173 +703,11 @@ struct VirtualDisplayCardView: View {
     var body: some View {
         VStack(spacing: 8) {
             // Main Row: Icon, Title, Badge, Settings button, and Switch
-            HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(virtualDisplayManager.isVirtualDisplayActive ? Color.purple.opacity(0.2) : Color.primary.opacity(0.06))
-                        .frame(width: 28, height: 28)
-
-                    Image(systemName: "display.2")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(virtualDisplayManager.isVirtualDisplayActive ? Color.purple : Color.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 1.5) {
-                    HStack(spacing: 6) {
-                        Text("Màn hình ảo (Dummy Display)")
-                            .font(.system(size: 11, weight: .semibold))
-
-                        if virtualDisplayManager.isVirtualDisplayActive {
-                            HStack(spacing: 3) {
-                                Circle()
-                                    .fill(Color.purple)
-                                    .frame(width: 5, height: 5)
-                                Text("\(virtualDisplayManager.currentResolution.width)×\(virtualDisplayManager.currentResolution.height)")
-                                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                            }
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(Capsule().fill(Color.purple.opacity(0.18)))
-                            .foregroundStyle(Color.purple)
-                        }
-                    }
-
-                    Text(virtualDisplayManager.isVirtualDisplayActive
-                         ? "Đang phát ảo · Tăng tốc GPU cho Parsec / TeamViewer"
-                         : "Tạo màn hình ảo cho máy gập, Mac mini headless")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                // Expand / Collapse Settings Toggle Button
-                Button {
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                        virtualDisplayManager.isCardExpanded.toggle()
-                    }
-                } label: {
-                    Image(systemName: virtualDisplayManager.isCardExpanded ? "chevron.up.circle.fill" : "gearshape")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(virtualDisplayManager.isCardExpanded ? Color.purple : Color.secondary)
-                        .padding(4)
-                        .background(Circle().fill(Color.primary.opacity(0.04)))
-                }
-                .buttonStyle(.plain)
-                .help(virtualDisplayManager.isCardExpanded ? "Thu gọn tùy chọn" : "Tùy chỉnh độ phân giải, HiDPI, Bảo mật")
-
-                Toggle("", isOn: Binding<Bool>(
-                    get: { virtualDisplayManager.isVirtualDisplayActive },
-                    set: { _ in
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                            virtualDisplayManager.toggleVirtualDisplay()
-                        }
-                    }
-                ))
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .labelsHidden()
-            }
+            headerRow
 
             // Expanded Settings Panel
             if virtualDisplayManager.isCardExpanded || virtualDisplayManager.isVirtualDisplayActive {
-                VStack(spacing: 7) {
-                    Divider().opacity(0.4)
-
-                    // Resolution Preset Header
-                    HStack {
-                        Text("ĐỘ PHÂN GIẢI MÀN HÌNH ẢO")
-                            .font(.system(size: 7.5, weight: .bold))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(virtualDisplayManager.currentResolution.width)×\(virtualDisplayManager.currentResolution.height) @ \(Int(virtualDisplayManager.currentResolution.refreshRate))Hz")
-                            .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(Color.purple)
-                    }
-
-                    // Resolution Preset Grid (2 columns)
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 5), GridItem(.flexible(), spacing: 5)], spacing: 5) {
-                        ForEach(Array(virtualDisplayManager.resolutions.enumerated()), id: \.offset) { index, res in
-                            Button {
-                                virtualDisplayManager.selectedResolutionIndex = index
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(virtualDisplayManager.selectedResolutionIndex == index ? Color.purple : Color.secondary.opacity(0.3))
-                                        .frame(width: 4.5, height: 4.5)
-
-                                    Text(res.name)
-                                        .font(.system(size: 8, weight: virtualDisplayManager.selectedResolutionIndex == index ? .bold : .medium))
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.85)
-
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4.5)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .fill(virtualDisplayManager.selectedResolutionIndex == index
-                                              ? Color.purple.opacity(0.15)
-                                              : Color.primary.opacity(0.04))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .stroke(virtualDisplayManager.selectedResolutionIndex == index
-                                                ? Color.purple.opacity(0.5)
-                                                : Color.clear, lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    // Bottom Quick Options: HiDPI toggle & Blackout Screen (Privacy)
-                    HStack(spacing: 6) {
-                        // HiDPI toggle
-                        Button {
-                            virtualDisplayManager.isHiDPIEnabled.toggle()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: virtualDisplayManager.isHiDPIEnabled ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(virtualDisplayManager.isHiDPIEnabled ? Color.purple : Color.secondary)
-                                Text("Retina (HiDPI)")
-                                    .font(.system(size: 8.5, weight: .medium))
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3.5)
-                            .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.04)))
-                        }
-                        .buttonStyle(.plain)
-                        .help("HiDPI giúp hiển thị văn bản và icon siêu mịn chuẩn Retina")
-
-                        Spacer()
-
-                        // Blackout Primary Display for Remote Privacy
-                        Button {
-                            virtualDisplayManager.toggleBlackoutPrimaryScreen()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: virtualDisplayManager.isBlackoutPrimaryActive ? "eye.slash.fill" : "eye.slash")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(virtualDisplayManager.isBlackoutPrimaryActive ? Color.yellow : Color.secondary)
-                                Text(virtualDisplayManager.isBlackoutPrimaryActive ? "Đang tắt màn thật" : "Tắt tối màn thật")
-                                    .font(.system(size: 8.5, weight: .medium))
-                                    .foregroundStyle(virtualDisplayManager.isBlackoutPrimaryActive ? Color.yellow : Color.primary)
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3.5)
-                            .background(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(virtualDisplayManager.isBlackoutPrimaryActive ? Color.yellow.opacity(0.15) : Color.primary.opacity(0.04))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .help("Tắt tối đen màn hình máy thật để chống nhìn trộm khi bạn điều khiển từ xa qua Parsec / TeamViewer")
-                    }
-                    .padding(.top, 2)
-                }
+                settingsPanel
             }
         }
         .padding(10)
@@ -881,6 +719,177 @@ struct VirtualDisplayCardView: View {
                         .stroke(virtualDisplayManager.isVirtualDisplayActive ? Color.purple.opacity(0.3) : Color.clear, lineWidth: 1)
                 )
         )
+    }
+
+    // Tách nhỏ body để trình biên dịch không quá thời gian type-check (lỗi trên máy Intel).
+    private var headerRow: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(virtualDisplayManager.isVirtualDisplayActive ? Color.purple.opacity(0.2) : Color.primary.opacity(0.06))
+                    .frame(width: 28, height: 28)
+
+                Image(systemName: "display.2")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(virtualDisplayManager.isVirtualDisplayActive ? Color.purple : Color.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 1.5) {
+                HStack(spacing: 6) {
+                    Text("Màn hình ảo (Dummy Display)")
+                        .font(.system(size: 11, weight: .semibold))
+
+                    if virtualDisplayManager.isVirtualDisplayActive {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(Color.purple)
+                                .frame(width: 5, height: 5)
+                            Text("\(virtualDisplayManager.currentResolution.width)×\(virtualDisplayManager.currentResolution.height)")
+                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        }
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(Capsule().fill(Color.purple.opacity(0.18)))
+                        .foregroundStyle(Color.purple)
+                    }
+                }
+
+                Text(virtualDisplayManager.isVirtualDisplayActive
+                     ? "Đang phát ảo · Tăng tốc GPU cho Parsec / TeamViewer"
+                     : "Tạo màn hình ảo cho máy gập, Mac mini headless")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            // Expand / Collapse Settings Toggle Button
+            Button {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                    virtualDisplayManager.isCardExpanded.toggle()
+                }
+            } label: {
+                Image(systemName: virtualDisplayManager.isCardExpanded ? "chevron.up.circle.fill" : "gearshape")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(virtualDisplayManager.isCardExpanded ? Color.purple : Color.secondary)
+                    .padding(4)
+                    .background(Circle().fill(Color.primary.opacity(0.04)))
+            }
+            .buttonStyle(.plain)
+            .help(virtualDisplayManager.isCardExpanded ? "Thu gọn tùy chọn" : "Tùy chỉnh độ phân giải, HiDPI, Bảo mật")
+
+            Toggle("", isOn: Binding<Bool>(
+                get: { virtualDisplayManager.isVirtualDisplayActive },
+                set: { _ in
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        virtualDisplayManager.toggleVirtualDisplay()
+                    }
+                }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            .labelsHidden()
+        }
+    }
+
+    private var settingsPanel: some View {
+        VStack(spacing: 7) {
+            Divider().opacity(0.4)
+
+            // Resolution Preset Header
+            HStack {
+                Text("ĐỘ PHÂN GIẢI MÀN HÌNH ẢO")
+                    .font(.system(size: 7.5, weight: .bold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(virtualDisplayManager.currentResolution.width)×\(virtualDisplayManager.currentResolution.height) @ \(Int(virtualDisplayManager.currentResolution.refreshRate))Hz")
+                    .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Color.purple)
+            }
+
+            // Resolution Preset Grid (2 columns)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 5), GridItem(.flexible(), spacing: 5)], spacing: 5) {
+                ForEach(Array(virtualDisplayManager.resolutions.enumerated()), id: \.offset) { index, res in
+                    Button {
+                        virtualDisplayManager.selectedResolutionIndex = index
+                    } label: {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(virtualDisplayManager.selectedResolutionIndex == index ? Color.purple : Color.secondary.opacity(0.3))
+                                .frame(width: 4.5, height: 4.5)
+
+                            Text(res.name)
+                                .font(.system(size: 8, weight: virtualDisplayManager.selectedResolutionIndex == index ? .bold : .medium))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4.5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(virtualDisplayManager.selectedResolutionIndex == index
+                                      ? Color.purple.opacity(0.15)
+                                      : Color.primary.opacity(0.04))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(virtualDisplayManager.selectedResolutionIndex == index
+                                        ? Color.purple.opacity(0.5)
+                                        : Color.clear, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Bottom Quick Options: HiDPI toggle & Blackout Screen (Privacy)
+            HStack(spacing: 6) {
+                // HiDPI toggle
+                Button {
+                    virtualDisplayManager.isHiDPIEnabled.toggle()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: virtualDisplayManager.isHiDPIEnabled ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 9))
+                            .foregroundStyle(virtualDisplayManager.isHiDPIEnabled ? Color.purple : Color.secondary)
+                        Text("Retina (HiDPI)")
+                            .font(.system(size: 8.5, weight: .medium))
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3.5)
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.04)))
+                }
+                .buttonStyle(.plain)
+                .help("HiDPI giúp hiển thị văn bản và icon siêu mịn chuẩn Retina")
+
+                Spacer()
+
+                // Blackout Primary Display for Remote Privacy
+                Button {
+                    virtualDisplayManager.toggleBlackoutPrimaryScreen()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: virtualDisplayManager.isBlackoutPrimaryActive ? "eye.slash.fill" : "eye.slash")
+                            .font(.system(size: 9))
+                            .foregroundStyle(virtualDisplayManager.isBlackoutPrimaryActive ? Color.yellow : Color.secondary)
+                        Text(virtualDisplayManager.isBlackoutPrimaryActive ? "Đang tắt màn thật" : "Tắt tối màn thật")
+                            .font(.system(size: 8.5, weight: .medium))
+                            .foregroundStyle(virtualDisplayManager.isBlackoutPrimaryActive ? Color.yellow : Color.primary)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3.5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(virtualDisplayManager.isBlackoutPrimaryActive ? Color.yellow.opacity(0.15) : Color.primary.opacity(0.04))
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Tắt tối đen màn hình máy thật để chống nhìn trộm khi bạn điều khiển từ xa qua Parsec / TeamViewer")
+            }
+            .padding(.top, 2)
+        }
     }
 }
 
@@ -1655,6 +1664,8 @@ struct BatteryCardView: View {
                 .controlSize(.mini)
                 .labelsHidden()
             }
+
+            HelperStatusRow(batteryManager: batteryManager)
 
             if batteryManager.isProtectionEnabled {
                 HStack(spacing: 6) {
@@ -2670,6 +2681,52 @@ struct UpdateModalView: View {
                     .stroke(Color.primary.opacity(0.1), lineWidth: 1)
             )
             .padding(.horizontal, 20)
+        }
+    }
+}
+
+
+// MARK: - Battery Helper Install / Legacy Cleanup Row
+
+struct HelperStatusRow: View {
+    @ObservedObject var batteryManager: BatteryManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            if batteryManager.hasLegacyHelper {
+                row(icon: "exclamationmark.shield.fill", color: .red,
+                    text: "Phát hiện helper cũ không an toàn (cho mọi user chạy root không cần mật khẩu)",
+                    button: "Gỡ ngay") { batteryManager.uninstallHelper() }
+            }
+
+            if !BatteryManager.isAppleSilicon {
+                row(icon: "cpu", color: .secondary,
+                    text: "Máy Intel chưa hỗ trợ khóa sạc (khóa CHTE chỉ có trên Apple Silicon)",
+                    button: nil, action: {})
+            } else if !batteryManager.isHelperInstalled && batteryManager.isProtectionEnabled {
+                row(icon: "key.fill", color: .orange,
+                    text: "Cần cấp quyền SMC một lần (nhập mật khẩu máy)",
+                    button: "Cấp quyền") { batteryManager.installHelper() }
+            }
+        }
+    }
+
+    private func row(icon: String, color: Color, text: String, button: String?, action: @escaping () -> Void) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(color)
+            Text(text)
+                .font(.system(size: 8))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            if let button {
+                Button(button, action: action)
+                    .font(.system(size: 8.5, weight: .semibold))
+                    .controlSize(.mini)
+                    .disabled(batteryManager.isInstallingHelper)
+            }
         }
     }
 }

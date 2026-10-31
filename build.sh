@@ -75,7 +75,7 @@ cp "$BINARY" "${MACOS}/"
 if [ -d "Resources" ]; then
     echo "🎨 Copying app resources (icons, cover image, SMC tools)..."
     cp -R Resources/* "${RESOURCES}/"
-    chmod +x "${RESOURCES}/smc" "${RESOURCES}/displaycontrol-power" "${RESOURCES}/install-helper.sh" 2>/dev/null || true
+    chmod +x "${RESOURCES}/smc" "${RESOURCES}/hypermac-power" "${RESOURCES}/install-helper.sh" 2>/dev/null || true
 fi
 
 # Info.plist — LSUIElement hides dock icon (menu-bar only)

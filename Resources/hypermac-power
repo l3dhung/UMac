@@ -1,0 +1,30 @@
+#!/bin/bash
+# HyperMac Power Helper — chạy bằng root qua sudoers (chỉ user đã cài, chỉ 3 lệnh cố định).
+# Chỉ dùng binary smc nằm cùng thư mục root-owned; không tìm theo PATH hay thư mục ghi được bằng user.
+set -u
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+SMC="/Library/PrivilegedHelperTools/com.opensource.hypermac/smc"
+
+if [ ! -x "$SMC" ]; then
+    echo "Error: smc binary not found"
+    exit 1
+fi
+
+case "${1:-}" in
+    status)
+        # Luôn thoát 0 để app biết helper đã cài; in giá trị CHTE nếu đọc được.
+        "$SMC" -k CHTE -r 2>/dev/null || echo "CHTE unavailable"
+        exit 0
+        ;;
+    charge-off)
+        "$SMC" -k CHTE -w 01000000
+        ;;
+    charge-on)
+        "$SMC" -k CHTE -w 00000000
+        ;;
+    *)
+        echo "Usage: $0 {status|charge-off|charge-on}"
+        exit 1
+        ;;
+esac

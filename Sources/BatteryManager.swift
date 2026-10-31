@@ -28,6 +28,19 @@ public class BatteryManager: ObservableObject {
     @Published public var isBypassActive: Bool = false    // SMC CHTE = 1 (Running direct from AC)
     @Published public var isHelperInstalled: Bool = false
     @Published public var isInstallingHelper: Bool = false
+    /// Còn sudoers "ALL ALL NOPASSWD" của bản ≤ v1.6.0 → cần gỡ.
+    @Published public var hasLegacyHelper: Bool = false
+
+    /// Helper nằm trong thư mục root-owned; sudoers chỉ cho đúng user đã cài chạy 3 lệnh cố định.
+    public static let helperPath = "/Library/PrivilegedHelperTools/com.opensource.hypermac/hypermac-power"
+    static let legacySudoersPath = "/etc/sudoers.d/displaycontrol_power"
+
+    /// Binary smc đi kèm chỉ có bản arm64 và khóa CHTE chỉ có trên Apple Silicon.
+    public static let isAppleSilicon: Bool = {
+        var value: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        return sysctlbyname("hw.optional.arm64", &value, &size, nil, 0) == 0 && value == 1
+    }()
     @Published public var statusMessage: String = "Đang kiểm tra..."
     @Published public var lastUpdated: Date = Date()
 
@@ -262,7 +275,7 @@ public class BatteryManager: ObservableObject {
 
         // Hard lock SMC CHTE to 1 if at or above limit to prevent waking or sleep-charging overrides
         if isProtectionEnabled && currentLevel >= chargeLimit && isHelperInstalled {
-            _ = shell("sudo -n /usr/local/bin/displaycontrol-power charge-off")
+            _ = shell("sudo -n \(Self.helperPath) charge-off")
         }
     }
 
@@ -473,15 +486,20 @@ public class BatteryManager: ObservableObject {
         let escapedTitle = title.replacingOccurrences(of: "\"", with: "\\\"")
         let escapedBody = body.replacingOccurrences(of: "\"", with: "\\\"")
         let script = "display notification \"\(escapedBody)\" with title \"\(escapedTitle)\" sound name \"Submarine\""
+        // Truyền thẳng qua argv, không qua shell: dấu ' trong nội dung không phá được lệnh.
         DispatchQueue.global(qos: .utility).async {
-            _ = shell("osascript -e '\(script)'")
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", script]
+            try? process.run()
+            process.waitUntilExit()
         }
     }
 
     public func checkSMCBypassStatus() {
         guard isHelperInstalled else { return }
         DispatchQueue.global(qos: .utility).async {
-            let (out, code) = shell("sudo -n /usr/local/bin/displaycontrol-power status 2>/dev/null")
+            let (out, code) = shell("sudo -n \(Self.helperPath) status 2>/dev/null")
             DispatchQueue.main.async {
                 if code == 0 {
                     // Check if CHTE is 1
@@ -597,7 +615,7 @@ public class BatteryManager: ObservableObject {
         guard isHelperInstalled else { return }
         let action = inhibit ? "charge-off" : "charge-on"
         DispatchQueue.global(qos: .utility).async {
-            let (_, code) = shell("sudo -n /usr/local/bin/displaycontrol-power \(action)")
+            let (_, code) = shell("sudo -n \(Self.helperPath) \(action)")
             DispatchQueue.main.async {
                 if code == 0 {
                     self.isBypassActive = inhibit
@@ -699,13 +717,13 @@ public class BatteryManager: ObservableObject {
     // MARK: - Helper Installation Check & Prompt
 
     public func checkHelperStatus() {
-        let exists = FileManager.default.fileExists(atPath: "/usr/local/bin/displaycontrol-power")
-        if !exists {
+        hasLegacyHelper = FileManager.default.fileExists(atPath: Self.legacySudoersPath)
+        guard Self.isAppleSilicon, FileManager.default.fileExists(atPath: Self.helperPath) else {
             self.isHelperInstalled = false
             return
         }
         DispatchQueue.global(qos: .utility).async {
-            let (_, code) = shell("sudo -n /usr/local/bin/displaycontrol-power status 2>/dev/null")
+            let (_, code) = shell("sudo -n \(Self.helperPath) status 2>/dev/null")
             DispatchQueue.main.async {
                 self.isHelperInstalled = (code == 0)
             }
@@ -713,53 +731,56 @@ public class BatteryManager: ObservableObject {
     }
 
     public func installHelper(completion: ((Bool) -> Void)? = nil) {
-        guard !isInstallingHelper else { return }
+        guard Self.isAppleSilicon else {
+            statusMessage = "Máy Intel chưa hỗ trợ khóa sạc"
+            completion?(false)
+            return
+        }
+        guard let smc = Bundle.main.path(forResource: "smc", ofType: nil),
+              let helper = Bundle.main.path(forResource: "hypermac-power", ofType: nil) else {
+            completion?(false)
+            return
+        }
+        runHelperInstaller(arguments: ["install", NSUserName(), smc, helper]) { success in
+            if success {
+                self.evaluatePowerManagement()
+            }
+            completion?(success)
+        }
+    }
+
+    /// Gỡ helper (cả bản mới lẫn sudoers cũ không an toàn).
+    public func uninstallHelper(completion: ((Bool) -> Void)? = nil) {
+        runHelperInstaller(arguments: ["uninstall"], completion: completion)
+    }
+
+    private func runHelperInstaller(arguments: [String], completion: ((Bool) -> Void)?) {
+        guard !isInstallingHelper,
+              let script = Bundle.main.path(forResource: "install-helper", ofType: "sh") else {
+            completion?(false)
+            return
+        }
         isInstallingHelper = true
 
         DispatchQueue.global(qos: .userInitiated).async {
-            var smcSrc = Bundle.main.path(forResource: "smc", ofType: nil)
-            var helperSrc = Bundle.main.path(forResource: "displaycontrol-power", ofType: nil)
-            var installScript = Bundle.main.path(forResource: "install-helper", ofType: "sh")
-
-            if smcSrc == nil {
-                smcSrc = "/Users/khacdai24/.gemini/antigravity-ide/scratch/DisplayControl/Resources/smc"
-            }
-            if helperSrc == nil {
-                helperSrc = "/Users/khacdai24/.gemini/antigravity-ide/scratch/DisplayControl/Resources/displaycontrol-power"
-            }
-            if installScript == nil {
-                installScript = "/Users/khacdai24/.gemini/antigravity-ide/scratch/DisplayControl/Resources/install-helper.sh"
-            }
-
-            guard let sSMC = smcSrc, let sHelper = helperSrc, let sInstall = installScript else {
-                DispatchQueue.main.async {
-                    self.isInstallingHelper = false
-                    completion?(false)
-                }
-                return
-            }
-
-            let appleScriptCmd = """
-            do shell script "/bin/bash '\(sInstall)' '\(sSMC)' '\(sHelper)'" with administrator privileges
-            """
-
+            let command = (["/bin/bash", script] + arguments).map(Self.shellQuote).joined(separator: " ")
+            let escaped = command
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
             var errorDict: NSDictionary?
-            if let scriptObj = NSAppleScript(source: appleScriptCmd) {
-                _ = scriptObj.executeAndReturnError(&errorDict)
-            }
-
-            // Verify installation
-            let (_, code) = shell("sudo -n /usr/local/bin/displaycontrol-power status 2>/dev/null")
-            let success = (code == 0)
+            let output = NSAppleScript(source: "do shell script \"\(escaped)\" with administrator privileges")?
+                .executeAndReturnError(&errorDict)
+            let success = errorDict == nil && (output?.stringValue ?? "").contains("SUCCESS")
 
             DispatchQueue.main.async {
                 self.isInstallingHelper = false
-                self.isHelperInstalled = success
-                if success {
-                    self.evaluatePowerManagement()
-                }
+                self.checkHelperStatus()
                 completion?(success)
             }
         }
+    }
+
+    nonisolated private static func shellQuote(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }
