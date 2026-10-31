@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Combine
+import Security
 
 // MARK: - Update Status States
 
@@ -326,7 +327,7 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
             return
         }
 
-        let tempZip = URL(fileURLWithPath: "/tmp/HyperMac_update.zip")
+        let tempZip = Self.workDir.appendingPathComponent("HyperMac_update.zip")
         try? FileManager.default.removeItem(at: tempZip)
 
         do {
@@ -365,7 +366,7 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
     /// Giải nén + kiểm tra gói cập nhật TRƯỚC khi thoát app.
     /// Nếu zip hỏng/không phải HyperMac, app đang chạy vẫn nguyên vẹn.
     private func stageAndInstall(zipPath: String) {
-        let staging = "/tmp/HyperMac_staging"
+        let staging = Self.workDir.appendingPathComponent("staging").path
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let fm = FileManager.default
@@ -405,17 +406,60 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
                 return
             }
 
+            guard Self.isSignedLikeRunningApp(appPath) else {
+                DispatchQueue.main.async {
+                    self?.state = .failed("Chữ ký của bản cập nhật không khớp với app đang chạy nên không tự cài. Hãy tải thủ công từ trang Releases nếu bạn tin nguồn này.")
+                }
+                return
+            }
+
             DispatchQueue.main.async {
                 self?.performInPlaceUpdate(stagedAppPath: appPath, zipPath: zipPath)
             }
         }
     }
 
+    // MARK: - Signature Check
+
+    /// Thư mục tạm riêng của user (/var/folders/...), không dùng /tmp dùng chung.
+    nonisolated static var workDir: URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("HyperMacUpdate", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        return dir
+    }
+
+    /// Bản tải về phải có chữ ký hợp lệ VÀ thỏa Designated Requirement của app đang chạy
+    /// (cùng bundle ID + cùng chứng chỉ ký). Bản build ad-hoc/local sẽ không tự cập nhật được — chủ ý.
+    nonisolated static func isSignedLikeRunningApp(_ path: String) -> Bool {
+        var selfCode: SecCode?
+        var selfStatic: SecStaticCode?
+        var requirement: SecRequirement?
+        guard SecCodeCopySelf([], &selfCode) == errSecSuccess, let selfCode,
+              SecCodeCopyStaticCode(selfCode, [], &selfStatic) == errSecSuccess, let selfStatic,
+              SecCodeCopyDesignatedRequirement(selfStatic, [], &requirement) == errSecSuccess, let requirement else {
+            appLog("⛔️ UpdateManager: không đọc được chữ ký của app đang chạy")
+            return false
+        }
+
+        var staged: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &staged) == errSecSuccess,
+              let staged else { return false }
+
+        let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
+        let status = SecStaticCodeCheckValidity(staged, flags, requirement)
+        if status != errSecSuccess {
+            appLog("⛔️ UpdateManager: chữ ký bản cập nhật không hợp lệ (OSStatus \(status))")
+        }
+        return status == errSecSuccess
+    }
+
     // MARK: - In-Place Atomic Replacement & Relaunch
 
     private func performInPlaceUpdate(stagedAppPath: String, zipPath: String) {
         let currentPid = ProcessInfo.processInfo.processIdentifier
-        let updaterScriptPath = "/tmp/hypermac_in_place_updater.sh"
+        let updaterScriptPath = Self.workDir.appendingPathComponent("in_place_updater.sh").path
+        let updaterLogPath = Self.workDir.appendingPathComponent("updater.log").path
 
         let appPath = "/Applications/HyperMac.app"
         let newPath = "/Applications/.HyperMac.new"
@@ -423,7 +467,7 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
 
         let script = """
         #!/bin/bash
-        exec > /tmp/hypermac_updater.log 2>&1
+        exec > "\(updaterLogPath)" 2>&1
 
         echo "🔄 HyperMac Updater started for PID \(currentPid)..."
         PID="\(currentPid)"
