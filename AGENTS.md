@@ -122,7 +122,7 @@ Ký ad-hoc làm cdhash đổi mỗi lần build ⇒ macOS thu hồi quyền Tr�
 
 1. `./scripts/export-ci-signing.sh` → `~/.umac-signing/ci-signing.p12(.base64)` + mật khẩu.
 2. Thêm secret `UMAC_SIGNING_P12_BASE64` và `UMAC_SIGNING_P12_PASSWORD` (nên dùng `gh secret set … < file` để tránh dán sai).
-3. Push tag `vX.Y.Z` ⇒ `.github/workflows/release.yml` import vào keychain tạm, build, verify `Authority=UMac Self-Signed`, phát hành `UMac.zip`. Thiếu secret ⇒ fallback ad-hoc kèm cảnh báo.
+3. Push tag `vX.Y.Z` ⇒ `.github/workflows/release.yml` (runner `macos-15`; GitHub đã ngừng `macos-14` — khi job bị huỷ với lỗi "configuration … is not supported" thì nâng runner) import vào keychain tạm, build, verify `Authority=UMac Self-Signed`, phát hành `UMac.zip`. Thiếu secret ⇒ fallback ad-hoc kèm cảnh báo.
 
 Bẫy đã gặp (đừng sửa lại thành sai):
 - p12 phải xuất dạng **legacy** (`openssl pkcs12 -export -legacy`), nếu không `security import` trên runner macOS 14 báo sai mật khẩu.
