@@ -1,6 +1,6 @@
 # ⚡ UMac — Tiện Ích Tất-Cả-Trong-Một Cho Mac (Apple Silicon & Intel)
 
-[![Version](https://img.shields.io/badge/version-v1.0.1-blue.svg)](https://github.com/l3dhung/UMac/releases/latest)
+[![Version](https://img.shields.io/badge/version-v1.0.2-blue.svg)](https://github.com/l3dhung/UMac/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-black.svg)](https://github.com/l3dhung/UMac)
 [![Chip](https://img.shields.io/badge/chip-Apple%20Silicon%20%7C%20Intel-brightgreen.svg)](https://github.com/l3dhung/UMac)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
@@ -19,7 +19,7 @@
 
 Bấm vào nút bên dưới để tải về phiên bản mới nhất:
 
-[![Download UMac](<https://img.shields.io/badge/📥_TẢI_VỀ-UMac.zip_(v1.0.1)-2563EB?style=for-the-badge&logo=apple&logoColor=white>)](https://github.com/l3dhung/UMac/releases/latest/download/UMac.zip)
+[![Download UMac](<https://img.shields.io/badge/📥_TẢI_VỀ-UMac.zip_(v1.0.2)-2563EB?style=for-the-badge&logo=apple&logoColor=white>)](https://github.com/l3dhung/UMac/releases/latest/download/UMac.zip)
 
 _(Hoặc vào trang [GitHub Releases](https://github.com/l3dhung/UMac/releases) để xem danh sách tất cả các bản phát hành)._
 
@@ -239,6 +239,13 @@ cd UMac
 ---
 
 ## 📝 Nhật Ký Phiên Bản (Changelog)
+
+### [v1.0.2] — 2026-11-20
+
+- 🧠 **Sửa lỗi rò rỉ bộ nhớ nghiêm trọng** (có từ HyperMac): mỗi phím gõ, cú click bị giữ lại trong bộ nhớ, app phình tới hàng trăm MB sau một ngày. Giờ UMac chỉ dùng khoảng 14 MB và không tăng theo thời gian.
+- 🔋 **Gần như không tốn CPU khi rảnh** (~0,1% thay vì 1–4%): nhiệt độ chỉ đọc khi bạn mở bảng hoặc bật hiện trên Menu Bar; pin chuyển sang nhận thông báo từ macOS thay vì hỏi liên tục.
+- 🌡 Sửa rò rỉ bộ nhớ của bộ đọc nhiệt độ trên máy chip M.
+- 📋 Lịch sử Clipboard gom các lần lưu và ghi tuần tự, luôn lưu kịp khi thoát app.
 
 ### [v1.0.1] — 2026-10-31
 

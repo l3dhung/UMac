@@ -83,6 +83,13 @@ public class DisplayManager: ObservableObject {
             _ = AXIsProcessTrustedWithOptions(options)
         }
 
+        startPermissionPolling()
+    }
+
+    /// Kiểm tra quyền Trợ năng định kỳ cho tới khi có quyền và bộ bắt phím đã chạy.
+    /// KeyInterceptor gọi lại hàm này nếu quyền bị thu hồi.
+    public func startPermissionPolling() {
+        guard permCheckTimer == nil else { return }
         permCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.checkAccessibility()
@@ -104,6 +111,10 @@ public class DisplayManager: ObservableObject {
         }
         if trusted && KeyInterceptor.shared.currentTap == nil {
             KeyInterceptor.shared.start()
+        }
+        if trusted && KeyInterceptor.shared.currentTap != nil {
+            permCheckTimer?.invalidate()
+            permCheckTimer = nil
         }
     }
 

@@ -1,7 +1,7 @@
 {
-  "version": "1.0.1",
-  "name": "UMac v1.0.1",
-  "notes": "🎨 Icon mới: chữ \"U\" vươn thành mũi tên đi lên trên khuôn bo góc chuẩn macOS, rõ nét ở mọi kích thước.",
-  "download_url": "https://github.com/l3dhung/UMac/releases/download/v1.0.1/UMac.zip",
-  "html_url": "https://github.com/l3dhung/UMac/releases/tag/v1.0.1"
+  "version": "1.0.2",
+  "name": "UMac v1.0.2",
+  "notes": "🧠 Sửa lỗi rò rỉ bộ nhớ nghiêm trọng: UMac giờ chỉ dùng khoảng 14 MB thay vì hàng trăm MB sau một ngày.\n🔋 Gần như không tốn CPU khi rảnh (~0,1% thay vì 1–4%).\n🌡 Sửa rò rỉ bộ nhớ của bộ đọc nhiệt độ trên máy chip M.\n📋 Lịch sử Clipboard lưu gọn và an toàn hơn.",
+  "download_url": "https://github.com/l3dhung/UMac/releases/download/v1.0.2/UMac.zip",
+  "html_url": "https://github.com/l3dhung/UMac/releases/tag/v1.0.2"
 }

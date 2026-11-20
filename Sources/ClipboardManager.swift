@@ -700,16 +700,40 @@ public class ClipboardManager: ObservableObject {
 
     // MARK: - Disk Persistence
 
+    private let saveQueue = DispatchQueue(label: "com.umac.clipboard.save", qos: .utility)
+    private var pendingSave: DispatchWorkItem?
+
+    /// Gom các lần lưu trong 1 giây thành một lần ghi, chạy tuần tự trên `saveQueue`
+    /// (trước đây mỗi lần copy ghi lại cả file, song song, bản cũ có thể đè bản mới).
     private func saveItemsToDisk() {
-        let itemsToSave = self.items
-        let url = self.storageURL
-        DispatchQueue.global(qos: .utility).async {
-            do {
-                let data = try JSONEncoder().encode(itemsToSave)
-                try data.write(to: url, options: .atomic)
-            } catch {
-                appLog("Failed to save clipboard items: \(error.localizedDescription)")
-            }
+        pendingSave?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pendingSave = nil
+            let itemsToSave = self.items
+            let url = self.storageURL
+            self.saveQueue.async { Self.write(itemsToSave, to: url) }
+        }
+        pendingSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+    }
+
+    /// Ghi ngay phần đang chờ — gọi khi app thoát.
+    public func flushPendingSave() {
+        guard let work = pendingSave else { return }
+        work.cancel()
+        pendingSave = nil
+        let itemsToSave = items
+        let url = storageURL
+        saveQueue.sync { Self.write(itemsToSave, to: url) }
+    }
+
+    nonisolated private static func write(_ items: [ClipItem], to url: URL) {
+        do {
+            let data = try JSONEncoder().encode(items)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            appLog("Failed to save clipboard items: \(error.localizedDescription)")
         }
     }
 

@@ -57,14 +57,17 @@ private typealias ServiceRef = OpaquePointer
 private typealias EventRef = OpaquePointer
 
 private typealias FnCreateWithType = @convention(c) (CFAllocator?, UInt32, CFDictionary?) -> ClientRef?
-private typealias FnCopyServices = @convention(c) (ClientRef) -> CFArray?
-private typealias FnCopyProperty = @convention(c) (ServiceRef, CFString) -> CFTypeRef?
+// Các hàm *Copy* trả về đối tượng +1: khai báo Unmanaged để tự giải phóng, tránh rò rỉ mỗi lần đọc.
+private typealias FnCopyServices = @convention(c) (ClientRef) -> Unmanaged<CFArray>?
+private typealias FnCopyProperty = @convention(c) (ServiceRef, CFString) -> Unmanaged<CFTypeRef>?
 private typealias FnCopyEvent = @convention(c) (ServiceRef, Int64, Int32, Int64) -> EventRef?
 private typealias FnGetFloat = @convention(c) (EventRef, UInt32) -> Double
 
 private class AppleSiliconHIDReader {
     private var client: ClientRef?
     private var cachedServices: [ServiceRef] = []
+    /// Giữ mảng gốc để các con trỏ trong `cachedServices` còn hợp lệ.
+    private var servicesArray: CFArray?
     private var lastDiscoveryTime: TimeInterval = 0
 
     private var fnCreate: FnCreateWithType?
@@ -97,7 +100,8 @@ private class AppleSiliconHIDReader {
         // Refresh services every 60s
         if cachedServices.isEmpty || (now - lastDiscoveryTime > 60) {
             cachedServices.removeAll(keepingCapacity: true)
-            if let servCF = copyServ(c) {
+            servicesArray = copyServ(c)?.takeRetainedValue()
+            if let servCF = servicesArray {
                 let count = CFArrayGetCount(servCF)
                 for i in 0..<count {
                     let s = unsafeBitCast(CFArrayGetValueAtIndex(servCF, i), to: ServiceRef.self)
@@ -118,11 +122,11 @@ private class AppleSiliconHIDReader {
         let kIOHIDEventFieldTemperatureValue: UInt32 = (15 << 16) | 0
 
         for s in cachedServices {
-            guard let pRef = copyProp(s, "Product" as CFString),
-                  let name = pRef as? String else { continue }
+            guard let name = copyProp(s, "Product" as CFString)?.takeRetainedValue() as? String else { continue }
 
             guard let evt = copyEvt(s, kIOHIDEventTypeTemperature, 0, 0) else { continue }
             let temp = getFloat(evt, kIOHIDEventFieldTemperatureValue)
+            Unmanaged<AnyObject>.fromOpaque(UnsafeRawPointer(evt)).release()
             guard temp > 15.0 && temp < 125.0 else { continue }
 
             if name.hasPrefix("PMU tdie") || name.hasPrefix("PMU2 tdie") {
@@ -214,6 +218,7 @@ public class ThermalManager: ObservableObject {
     @Published public var showMenuBarMetrics: Bool = UserDefaults.standard.bool(forKey: "show_menubar_thermal") {
         didSet {
             UserDefaults.standard.set(showMenuBarMetrics, forKey: "show_menubar_thermal")
+            updatePolling()
             updateMenuBarDisplay()
         }
     }
@@ -228,8 +233,7 @@ public class ThermalManager: ObservableObject {
 
     private init() {
         loadMachineHardwareInfo()
-        refreshMetrics()
-        startPolling()
+        updatePolling()
 
         NotificationCenter.default.addObserver(
             self,
@@ -280,13 +284,31 @@ public class ThermalManager: ObservableObject {
 
     // MARK: - Polling & Refresh Metrics
 
-    private func startPolling() {
+    private var isPopoverVisible = false
+    private var pollInterval: TimeInterval = 0
+
+    public func setPopoverVisible(_ visible: Bool) {
+        isPopoverVisible = visible
+        updatePolling()
+    }
+
+    /// Chỉ đọc cảm biến khi có người xem: 2.5s khi bảng mở, 5s khi chỉ hiện nhiệt độ
+    /// trên Menu Bar, dừng hẳn khi không cần (không tốn CPU/pin lúc rảnh).
+    private func updatePolling() {
+        let interval: TimeInterval = isPopoverVisible ? 2.5 : (showMenuBarMetrics ? 5 : 0)
+        guard interval != pollInterval else { return }
+        pollInterval = interval
         pollTimer?.invalidate()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.refreshMetrics()
-            }
+        pollTimer = nil
+        guard interval > 0 else { return }
+
+        refreshMetrics()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshMetrics() }
         }
+        timer.tolerance = interval * 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        pollTimer = timer
     }
 
     public func refreshMetrics() {

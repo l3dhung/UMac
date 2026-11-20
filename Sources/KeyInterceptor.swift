@@ -64,6 +64,8 @@ private func triggerMissionControl() {
 
 // MARK: - Event Tap Callback (Session level, zero main-sync)
 
+/// Lưu ý bộ nhớ: sự kiện cho đi tiếp phải trả về `passUnretained` — callback không sở hữu
+/// `event`. Trả `passRetained` làm rò rỉ mọi phím/click đi qua tap (lỗi có từ HyperMac).
 private func eventTapCallback(
     proxy: CGEventTapProxy,
     type: CGEventType,
@@ -79,7 +81,7 @@ private func eventTapCallback(
                 KeyInterceptor.shared.stop()
             }
         }
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     if type == .tapDisabledByTimeout {
@@ -87,7 +89,7 @@ private func eventTapCallback(
         if let tap = gCurrentTap {
             CGEvent.tapEnable(tap: tap, enable: true)
         }
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     // 2. Mouse Chording: Simultaneous Left + Right Click -> F3 (Mission Control)
@@ -219,7 +221,7 @@ private func eventTapCallback(
     // 4. Media Keys (Brightness UP/DOWN F1/F2)
     if type.rawValue == NX_SYSDEFINED {
         guard let nsEvent = NSEvent(cgEvent: event) else {
-            return Unmanaged.passRetained(event)
+            return Unmanaged.passUnretained(event)
         }
 
         if nsEvent.subtype.rawValue == 8 {
@@ -351,7 +353,7 @@ private func eventTapCallback(
         }
     }
 
-    return Unmanaged.passRetained(event)
+    return Unmanaged.passUnretained(event)
 }
 
 // MARK: - KeyInterceptor Singleton
@@ -361,6 +363,7 @@ public class KeyInterceptor {
     public static let shared = KeyInterceptor()
 
     private var eventTap: CFMachPort?
+    private var hasLoggedTapFailure = false
     private var runLoopSource: CFRunLoopSource?
 
     public var currentTap: CFMachPort? {
@@ -400,14 +403,17 @@ public class KeyInterceptor {
         )
 
         guard let validTap = tap else {
-            let trusted = AXIsProcessTrusted()
-            appLog("⚠️ KeyInterceptor: Could not create session CGEventTap. AXIsProcessTrusted=\(trusted). Retrying in 1.5s...")
+            if !hasLoggedTapFailure {
+                hasLoggedTapFailure = true
+                appLog("⚠️ KeyInterceptor: Could not create session CGEventTap. AXIsProcessTrusted=\(AXIsProcessTrusted()). Retrying every 1.5s...")
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 self?.start()
             }
             return
         }
 
+        hasLoggedTapFailure = false
         self.eventTap = validTap
         gCurrentTap = validTap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, validTap, 0)
@@ -428,6 +434,7 @@ public class KeyInterceptor {
             self.runLoopSource = nil
             gCurrentTap = nil
             appLog("⏹ KeyInterceptor stopped.")
+            DisplayManager.shared.startPermissionPolling()
         }
     }
 }

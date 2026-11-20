@@ -1,5 +1,6 @@
 import Foundation
 import IOKit
+import IOKit.ps
 import Combine
 import AppKit
 
@@ -160,6 +161,9 @@ public class BatteryManager: ObservableObject {
     private var hasAlertedBypassThisSession: Bool = false
 
     private var timer: Timer?
+    private var pollInterval: TimeInterval = 0
+    private var isPopoverVisible = false
+    private var powerSourceRunLoopSource: CFRunLoopSource?
 
     private init() {
         // Load preferences
@@ -321,17 +325,47 @@ public class BatteryManager: ObservableObject {
 
     // MARK: - Polling Timer
 
+    public func setPopoverVisible(_ visible: Bool) {
+        isPopoverVisible = visible
+        startPolling()
+        if visible { pollTick() }
+    }
+
+    /// Cắm/rút sạc và mỗi lần % pin đổi được macOS báo ngay (IOPS notification), nên timer
+    /// chỉ là lưới an toàn: 3.5s khi bảng mở (số W/A trực tiếp), 15s khi đang khóa sạc
+    /// hoặc hiệu chuẩn, 60s khi chỉ theo dõi.
     public func startPolling() {
+        observePowerSourceChanges()
+        let isControlling = isHelperInstalled && (isProtectionEnabled || isTopUpActive || calibrationState != .idle)
+        let interval: TimeInterval = isPopoverVisible ? 3.5 : (isControlling ? 15 : 60)
+        guard interval != pollInterval else { return }
+        pollInterval = interval
+
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 3.5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.refreshBatteryInfo()
-                self.checkSMCBypassStatus()
-                self.checkAutoCalibrationSchedule()
-                self.evaluatePowerManagement()
-            }
+        let newTimer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pollTick() }
         }
+        newTimer.tolerance = interval * 0.2
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
+    }
+
+    private func pollTick() {
+        refreshBatteryInfo()
+        checkSMCBypassStatus()
+        checkAutoCalibrationSchedule()
+        evaluatePowerManagement()
+    }
+
+    private func observePowerSourceChanges() {
+        guard powerSourceRunLoopSource == nil else { return }
+        // Callback C không giữ được context; chạy trên main run loop nên gọi thẳng shared.
+        let source = IOPSNotificationCreateRunLoopSource({ _ in
+            MainActor.assumeIsolated { BatteryManager.shared.pollTick() }
+        }, nil)?.takeRetainedValue()
+        guard let source else { return }
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+        powerSourceRunLoopSource = source
     }
 
     // MARK: - IOKit Battery Status Query
@@ -521,6 +555,8 @@ public class BatteryManager: ObservableObject {
     // MARK: - Power & Limiter Evaluation
 
     public func evaluatePowerManagement() {
+        // Trạng thái khóa sạc/hiệu chuẩn có thể vừa đổi → chỉnh lại nhịp đọc pin.
+        startPolling()
         guard isHelperInstalled else {
             statusMessage = "Cần cấp quyền để kích hoạt bảo vệ nguồn SMC"
             return

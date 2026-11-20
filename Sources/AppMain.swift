@@ -69,6 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        ClipboardManager.shared.flushPendingSave()
         VirtualDisplayManager.shared.destroyVirtualDisplay()
     }
 
@@ -88,10 +89,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     // Bật/tắt bộ đo tốc độ chép file theo vòng đời popover (chỉ chạy khi bảng mở).
     func popoverDidShow(_ notification: Notification) {
         DiskSpeedManager.shared.setPopoverVisible(true)
+        ThermalManager.shared.setPopoverVisible(true)
+        BatteryManager.shared.setPopoverVisible(true)
+        DisplayManager.shared.checkAccessibility()
     }
 
     func popoverDidClose(_ notification: Notification) {
         DiskSpeedManager.shared.setPopoverVisible(false)
+        ThermalManager.shared.setPopoverVisible(false)
+        BatteryManager.shared.setPopoverVisible(false)
     }
 }
 
