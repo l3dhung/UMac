@@ -272,7 +272,7 @@ struct TopTabBar: View {
         HStack(spacing: 4) {
             tabButton(index: 0, title: "Màn hình", icon: "display")
             tabButton(index: 1, title: "Phần cứng", icon: "shield.checkered")
-            tabButton(index: 2, title: "Phím tắt", icon: "keyboard")
+            tabButton(index: 2, title: "Cài đặt", icon: "gearshape")
             tabButton(index: 3, title: "Dọn dẹp", icon: "sparkles")
         }
         .padding(3)
@@ -934,6 +934,8 @@ struct ShortcutsTabView: View {
                     .background(RoundedRectangle(cornerRadius: 8).fill(Color.yellow.opacity(0.12)))
                 }
 
+                GeneralSettingsCard()
+
                 // AltTab Card
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -942,7 +944,7 @@ struct ShortcutsTabView: View {
                             .foregroundStyle(Color.accentColor)
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Chuyển đổi cửa sổ (Command + Tab)")
+                            Text("Chuyển đổi cửa sổ (AltTab)")
                                 .font(.system(size: 10.5, weight: .bold))
                             Text("Thay thế AltTab với live preview độc lập & chuẩn MRU")
                                 .font(.system(size: 8))
@@ -961,13 +963,7 @@ struct ShortcutsTabView: View {
                     }
 
                     if windowManager.isAltTabEnabled {
-                        // AltTab Shortcuts Guide
-                        HStack(spacing: 6) {
-                            shortcutPill(key: "⌘ + Tab", desc: "Chuyển tiếp")
-                            shortcutPill(key: "⌘ + ~", desc: "Lùi lại")
-                            shortcutPill(key: "W", desc: "Đóng cửa sổ")
-                            shortcutPill(key: "Q", desc: "Thoát App")
-                        }
+                        AltTabTriggerPicker()
 
                         if !windowManager.hasScreenRecording {
                             HStack(spacing: 6) {
@@ -1019,19 +1015,7 @@ struct ShortcutsTabView: View {
                     }
 
                     if snapManager.isSnapEnabled {
-                        VStack(spacing: 4) {
-                            HStack(spacing: 6) {
-                                shortcutPill(key: "⌥⌃←", desc: "Nửa trái")
-                                shortcutPill(key: "⌥⌃→", desc: "Nửa phải")
-                                shortcutPill(key: "⌥⌃↑", desc: "Toàn màn hình")
-                                shortcutPill(key: "⌥⌃↓", desc: "Căn giữa")
-                            }
-                            HStack(spacing: 6) {
-                                shortcutPill(key: "⌥⌘→", desc: "Sang màn hình phải")
-                                shortcutPill(key: "⌥⌘←", desc: "Sang màn hình trái")
-                                Spacer()
-                            }
-                        }
+                        WindowShortcutsGrid()
                     }
                 }
                 .padding(10)
@@ -1065,8 +1049,8 @@ struct ShortcutsTabView: View {
 
                     if clipboardManager.isMonitoringEnabled {
                         // Shortcuts & Quick Actions
+                        ShortcutRecorderView(action: .clipboard)
                         HStack(spacing: 6) {
-                            shortcutPill(key: "⌘⇧C", desc: "Mở bảng HUD")
                             shortcutPill(key: "1..9", desc: "Dán tức thì")
                             shortcutPill(key: "⌥P", desc: "Ghim")
                             shortcutPill(key: "⌥⌫", desc: "Xóa")
@@ -1223,6 +1207,8 @@ struct ShortcutsTabView: View {
                 }
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .controlBackgroundColor)))
+
+                ShortcutsFooter()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

@@ -313,7 +313,8 @@ public class BatteryManager: ObservableObject {
             self.lastSleepReport = report
             UserDefaults.standard.set(report, forKey: "battery_last_sleep_report")
 
-            if isSmartAlertsEnabled {
+            // Chỉ báo khi hao pin đáng kể; báo cáo đầy đủ vẫn xem được trong tab Phần cứng.
+            if isSmartAlertsEnabled && delta <= -3 {
                 sendNotification(
                     title: "🛡️ Sleep Guard: Báo cáo khi mở máy",
                     body: "Máy đã nghỉ \(hours)h\(mins)m. \(drainText). Chế độ nguồn AC tiếp tục được bảo vệ!"
@@ -470,7 +471,8 @@ public class BatteryManager: ObservableObject {
                 lastExtDisplayAlertDate = now
                 sendNotification(
                     title: "⚠️ Đang dùng màn ngoài nhưng chưa cắm sạc!",
-                    body: "Màn hình ngoài đang làm GPU xả pin rất nặng và nóng máy. Hãy cắm sạc để máy chạy điện trực tiếp và bảo vệ pin!"
+                    body: "Màn hình ngoài đang làm GPU xả pin rất nặng và nóng máy. Hãy cắm sạc để máy chạy điện trực tiếp và bảo vệ pin!",
+                    level: .warning
                 )
             }
         } else if isPluggedIn {
@@ -484,7 +486,8 @@ public class BatteryManager: ObservableObject {
                     lastLowBatteryAlertLevel = 10
                     sendNotification(
                         title: "🚨 KHẨN CẤP: Pin còn 10%!",
-                        body: "Tuyệt đối không để máy dùng cạn đáy sập nguồn (gây hại cell pin vĩnh viễn). Hãy cắm sạc ngay!"
+                        body: "Tuyệt đối không để máy dùng cạn đáy sập nguồn (gây hại cell pin vĩnh viễn). Hãy cắm sạc ngay!",
+                        level: .critical
                     )
                 }
             } else if currentLevel <= 20 {
@@ -492,7 +495,8 @@ public class BatteryManager: ObservableObject {
                     lastLowBatteryAlertLevel = 20
                     sendNotification(
                         title: "⚠️ Pin yếu (20%) - Hãy cắm sạc!",
-                        body: "Để tránh hiện tượng tụt áp sâu (Deep Discharge) làm chai pin, hãy cắm sạc ngay bây giờ."
+                        body: "Để tránh hiện tượng tụt áp sâu (Deep Discharge) làm chai pin, hãy cắm sạc ngay bây giờ.",
+                        level: .warning
                     )
                 }
             } else {
@@ -530,12 +534,13 @@ public class BatteryManager: ObservableObject {
         let tempStr = String(format: "%.1f°C", temperature)
         sendNotification(
             title: "⚠️ Cảnh báo nhiệt độ pin (\(tempStr))",
-            body: "Nhiệt độ pin MacBook đã lên tới \(tempStr)! Hãy kê thoáng máy hoặc mở phần Giám sát năng lượng để đóng băng các tác vụ nặng."
+            body: "Nhiệt độ pin MacBook đã lên tới \(tempStr)! Hãy kê thoáng máy hoặc mở phần Giám sát năng lượng để đóng băng các tác vụ nặng.",
+            level: .warning
         )
     }
 
-    private func sendNotification(title: String, body: String) {
-        postUserNotification(title: title, body: body, sound: "Submarine")
+    private func sendNotification(title: String, body: String, level: NotificationLevel = .info) {
+        postUserNotification(title: title, body: body, level: level)
     }
 
     public func checkSMCBypassStatus() {

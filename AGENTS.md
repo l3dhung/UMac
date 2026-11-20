@@ -48,7 +48,10 @@ swift build -c release   # chỉ biên dịch
 | `BluetoothManager.swift` | Tắt/bật Bluetooth cho Sleep Guard |
 | `UpdateManager.swift` | Kiểm tra/tải/cài bản cập nhật |
 | `AccessibilityRecovery.swift` | Tự reset entry TCC hỏng và xin lại quyền Trợ năng |
-| `UserNotification.swift` | `postUserNotification()` dùng chung |
+| `UserNotification.swift` | `postUserNotification(level:)` qua UNUserNotificationCenter (tên + icon UMac); thẻ góc màn hình khi không có quyền |
+| `Shortcuts.swift` | Mô hình phím tắt (`KeyCombo`, `ShortcutAction`, `ShortcutStore`), bảng tra cho event tap, ô ghi phím |
+| `SettingsViews.swift` | Thẻ Chung (Mở cùng máy, Thông báo), chọn phím AltTab, lưới phím tắt |
+| `LaunchAtLogin.swift` | Mở cùng máy qua `SMAppService.mainApp` |
 | `ShellHelper.swift` | `shell()` đồng bộ |
 
 ## 4. Quy ước
@@ -67,6 +70,17 @@ swift build -c release   # chỉ biên dịch
 - `AXUIElementSetMessagingTimeout` = 0.05s. `KeyInterceptor` gọi `handleModifierReleased()` khi nhả `⌘/⌥`.
 - Callback CGEventTap phải trả `Unmanaged.passUnretained(event)` (hoặc `nil` để nuốt sự kiện). `passRetained` làm rò rỉ mọi sự kiện đi qua tap — HyperMac ≤ 1.6 / UMac ≤ 1.0.1 phình tới ~270 MB sau 27 giờ. Kiểm tra bằng `heap $(pgrep -x UMac) | grep -E " (HIDEvent|CGEvent) "` (phải không tăng).
 - Không có quyền thì `start()` thử lại mỗi 1.5s và chỉ log lần đầu; `DisplayManager` ngừng kiểm tra quyền khi tap đã chạy và bật lại nếu `stop()` (quyền bị thu hồi).
+
+### Phím tắt tuỳ chỉnh
+- Mỗi `ShortcutAction` một `KeyCombo` (mã phím + ⌃⌥⇧⌘), lưu `UserDefaults["shortcut_<action>"]`; `Data()` rỗng = người dùng đã xoá. Mặc định: ⌃⌥←/→/↑/↓, ⌃⌥⌘←/→ (⌥⌘←/→ là phím chuyển tab của trình duyệt), ⌘⇧C.
+- `ShortcutStore.publishTable()` dựng `gShortcutTable[lookupKey]`; event tap tra bảng (main thread). Chia cửa sổ tôn trọng `gIsSnapEnabled`, Clipboard tôn trọng `gIsClipboardEnabled`.
+- Ghi phím: `gIsRecordingShortcut` → tap nuốt mọi keyDown và chuyển cho `handleRecorded` (không kích hoạt phím tắt cũ). ⎋ huỷ, ⌫ xoá; bắt buộc có ⌘/⌥/⌃ hoặc là F1–F12; trùng thì gỡ khỏi thao tác cũ. Đóng popover sẽ huỷ ghi.
+- `gAltTabTrigger`: ⌘Tab + ⌥Tab / chỉ ⌥Tab / chỉ ⌘Tab (`alttab_trigger`).
+
+### Thông báo
+- `NotificationLevel`: `.info` im lặng (passive), `.warning` có âm thanh, `.critical` time-sensitive. Delegate `willPresent` vẫn hiện banner khi popover đang mở.
+- Không có quyền: `.info` bỏ qua, `.warning/.critical` hiện `ToastPanel` góc trên phải. Không dùng `osascript` (hiện dưới tên Script Editor).
+- Báo cáo Sleep Guard chỉ gửi khi hao ≥ 3%; báo cáo đầy đủ vẫn ở tab Phần cứng.
 
 ### Clipboard
 - Lưu đĩa được gom 1 giây và ghi tuần tự trên `saveQueue`; `applicationWillTerminate` gọi `flushPendingSave()`.

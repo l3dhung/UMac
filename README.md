@@ -73,7 +73,7 @@ Sau đó mở UMac bình thường từ Spotlight (`Cmd + Space` gõ `UMac`) ho�
 
 ## 🎮 BẢNG HƯỚNG DẪN SỬ DỤNG & PHÍM TẮT
 
-UMac nằm gọn gàng trên thanh Menu Bar góc trên bên phải (biểu tượng `⌘`). Dưới đây là phím tắt của các tính năng:
+UMac nằm gọn gàng trên thanh Menu Bar góc trên bên phải (biểu tượng `⌘`). Dưới đây là phím tắt **mặc định** — đổi được hết trong tab **Cài đặt** (bấm vào ô phím tắt rồi nhấn tổ hợp mới):
 
 ### 🪟 1. Chia Cửa Sổ (Thay thế Rectangle)
 
@@ -83,7 +83,7 @@ UMac nằm gọn gàng trên thanh Menu Bar góc trên bên phải (biểu tư�
 | :---------------------------- | :------------------------------------- | :------------------------------------ |
 | **Nửa trái**                  | `⌃ Control + ⌥ Option + ←`             | Cửa sổ chiếm 50% bên trái             |
 | **Nửa phải**                  | `⌃ Control + ⌥ Option + →`             | Cửa sổ chiếm 50% bên phải             |
-| **Toàn màn hình**             | `⌃ Control + ⌥ Option + ↵` (hoặc `↑`)  | Phóng to cửa sổ đầy màn hình          |
+| **Toàn màn hình**             | `⌃ Control + ⌥ Option + ↑`             | Phóng to cửa sổ đầy màn hình          |
 | **Căn giữa**                  | `⌃ Control + ⌥ Option + ↓`             | Thu cửa sổ về chính giữa màn hình     |
 | **Chuyển sang màn hình khác** | `⌃ Control + ⌥ Option + ⌘ Command + →` | Chuyển cửa sổ sang màn hình phụ/chính |
 
@@ -93,7 +93,7 @@ UMac nằm gọn gàng trên thanh Menu Bar góc trên bên phải (biểu tư�
 
 Trình chuyển đổi cửa sổ dạng xem trước trực quan (Thumbnail Live Preview) cực xịn:
 
-- **Mở trình chuyển đổi:** Nhấn giữ **`⌘ Command + Tab`** (hoặc `⌥ Option + Tab`).
+- **Mở trình chuyển đổi:** Nhấn giữ **`⌘ Command + Tab`** hoặc `⌥ Option + Tab`. Muốn giữ `⌘Tab` gốc của macOS, chọn **Chỉ ⌥Tab** trong tab Cài đặt.
 - **Chuẩn MRU:** Đảo nhanh giữa 2 cửa sổ gần nhất chỉ bằng 1 cú nhấp thả.
 - **Điều hướng:**
   - Bấm `Tab` để chọn tiếp, bấm `~` để lùi lại.
@@ -107,7 +107,7 @@ Trình chuyển đổi cửa sổ dạng xem trước trực quan (Thumbnail Liv
 
 Lưu trữ lịch sử văn bản, hình ảnh, liên kết, mã màu đã sao chép:
 
-- **Mở Clipboard:** Bấm **`⌘ Command + ⇧ Shift + C`** (hoặc `⌘ + ⇧ + V`).
+- **Mở Clipboard:** Bấm **`⌘ Command + ⇧ Shift + C`** (đổi được trong tab Cài đặt; `⌘⇧V` để dành cho "Dán và khớp kiểu" của macOS).
 - **Dán siêu tốc:** Bấm phím số **`1` đến `9`** để dán tức thì dòng tương ứng vào văn bản mà không cần click chuột.
 - **Thao tác nhanh:**
   - Bấm **`↵ Enter`**: Dán mục đang chọn.
@@ -187,7 +187,7 @@ Tab **Dọn dẹp** trên menu UMac:
 <details>
 <summary><b>3. Làm thế nào để UMac tự động chạy khi mở máy Mac?</b></summary>
 
-> Vào **Cài đặt hệ thống (System Settings) ➔ Cài đặt chung (General) ➔ Mục đăng nhập (Login Items)**. Tại ô "Mở khi đăng nhập", bấm dấu `+` và chọn file **`UMac.app`** trong thư mục Applications.
+> Mở UMac ➔ tab **Cài đặt** ➔ bật **Mở cùng máy**. Nếu macOS báo đang chặn, bấm **Mở Cài đặt** rồi bật UMac trong *Mục đăng nhập*.
 
 </details>
 

@@ -92,6 +92,19 @@ private func eventTapCallback(
         return Unmanaged.passUnretained(event)
     }
 
+    // 1b. Đang ghi phím tắt mới: chuyển phím bấm cho ShortcutStore, không kích hoạt gì.
+    if gIsRecordingShortcut {
+        if type == .keyDown {
+            let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+            let flags = event.flags
+            DispatchQueue.main.async {
+                ShortcutStore.shared.handleRecorded(keyCode: keyCode, flags: flags)
+            }
+            return nil
+        }
+        return Unmanaged.passUnretained(event)
+    }
+
     // 2. Mouse Chording: Simultaneous Left + Right Click -> F3 (Mission Control)
     if gIsMouseChordEnabled {
         let now = Date().timeIntervalSince1970
@@ -165,9 +178,9 @@ private func eventTapCallback(
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             let flags = event.flags
 
-            // Check triggers: Command + Tab or Option + Tab
-            let isCmdTab = flags.contains(.maskCommand) && keyCode == 48
-            let isOptTab = flags.contains(.maskAlternate) && keyCode == 48
+            // Phím mở theo lựa chọn của người dùng (ShortcutStore.altTabTrigger)
+            let isCmdTab = gAltTabTrigger != .optionOnly && flags.contains(.maskCommand) && keyCode == 48
+            let isOptTab = gAltTabTrigger != .commandOnly && flags.contains(.maskAlternate) && keyCode == 48
 
             if isCmdTab || isOptTab {
                 gActiveModifierMask = isCmdTab ? .maskCommand : .maskAlternate
@@ -255,12 +268,10 @@ private func eventTapCallback(
             return nil
         }
 
-        // Command + Shift + C (or Cmd + Shift + V) -> Toggle Clipboard Manager HUD (Maccy Replacement)
-        let isCmdShift = flags.contains(.maskCommand) && flags.contains(.maskShift) && !flags.contains(.maskControl)
-        if gIsClipboardEnabled && isCmdShift && (keycode == 8 || keycode == 9) {
-            DispatchQueue.main.async {
-                ClipboardManager.shared.toggleHUD()
-            }
+        // Phím tắt do người dùng gán (chia cửa sổ, chuyển màn hình, Clipboard) — xem Shortcuts.swift
+        if let action = gShortcutTable[KeyCombo(keyCode: UInt16(keycode), flags).lookupKey],
+           action.isWindowAction ? gIsSnapEnabled : gIsClipboardEnabled {
+            DispatchQueue.main.async { action.perform() }
             return nil
         }
 
@@ -312,45 +323,6 @@ private func eventTapCallback(
                 }
             }
         }
-
-        // Option + Control + Arrow keys -> Window Snapping (Rectangle-style)
-        let isOptCtrl = flags.contains(.maskAlternate) && flags.contains(.maskControl) && !flags.contains(.maskCommand)
-        if isOptCtrl {
-            switch keycode {
-            case 123: // Left Arrow -> Left Half
-                DispatchQueue.main.async { WindowSnapManager.shared.snapActiveWindow(.leftHalf) }
-                return nil
-            case 124: // Right Arrow -> Right Half
-                DispatchQueue.main.async { WindowSnapManager.shared.snapActiveWindow(.rightHalf) }
-                return nil
-            case 126: // Up Arrow -> Maximize
-                DispatchQueue.main.async { WindowSnapManager.shared.snapActiveWindow(.maximize) }
-                return nil
-            case 125: // Down Arrow -> Center
-                DispatchQueue.main.async { WindowSnapManager.shared.snapActiveWindow(.center) }
-                return nil
-            default:
-                break
-            }
-        }
-
-        // Option + Command + Arrow keys (or Ctrl + Option + Command + Arrow keys - Rectangle standard)
-        // -> Move to Display (Next / Previous)
-        let isNextPrevDisplay = flags.contains(.maskAlternate) && flags.contains(.maskCommand)
-        if isNextPrevDisplay {
-            switch keycode {
-            case 124, 126: // Right or Up Arrow -> Next Display
-                appLog("⌨️ Shortcut: Move Window to Next Display")
-                DispatchQueue.main.async { WindowSnapManager.shared.moveActiveWindowToDisplay(isNext: true) }
-                return nil
-            case 123, 125: // Left or Down Arrow -> Previous Display
-                appLog("⌨️ Shortcut: Move Window to Previous Display")
-                DispatchQueue.main.async { WindowSnapManager.shared.moveActiveWindowToDisplay(isNext: false) }
-                return nil
-            default:
-                break
-            }
-        }
     }
 
     return Unmanaged.passUnretained(event)
@@ -376,6 +348,9 @@ public class KeyInterceptor {
         gIsMouseChordEnabled = (UserDefaults.standard.object(forKey: "mouse_chord_enabled") as? Bool) ?? true
         gIsAltTabEnabled = (UserDefaults.standard.object(forKey: "alttab_enabled") as? Bool) ?? true
         gIsClipboardEnabled = (UserDefaults.standard.object(forKey: "clipboard_monitoring_enabled") as? Bool) ?? true
+        // Nạp bảng phím tắt và trạng thái bật/tắt chia cửa sổ cho event tap.
+        _ = ShortcutStore.shared
+        _ = WindowSnapManager.shared
     }
 
     public func start() {

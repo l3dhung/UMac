@@ -23,6 +23,7 @@ public class WindowSnapManager: ObservableObject {
     @Published public var isSnapEnabled: Bool = true {
         didSet {
             UserDefaults.standard.set(isSnapEnabled, forKey: "window_snap_enabled")
+            gIsSnapEnabled = isSnapEnabled
         }
     }
 
@@ -32,6 +33,7 @@ public class WindowSnapManager: ObservableObject {
         } else {
             self.isSnapEnabled = true
         }
+        gIsSnapEnabled = isSnapEnabled
     }
 
     // MARK: - Coordinate Conversion (Cocoa Bottom-Left to Accessibility Top-Left)

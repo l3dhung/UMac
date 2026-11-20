@@ -55,6 +55,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         ThermalManager.shared.updateMenuBarDisplay()
 
+        // Xin quyền thông báo (hiện với tên & icon UMac) — chỉ hỏi lần đầu
+        UMacNotifier.shared.requestAuthorization()
+
         // Tự khôi phục quyền Accessibility nếu vừa update làm mất quyền
         AccessibilityRecovery.handleLaunch()
 
@@ -98,6 +101,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         DiskSpeedManager.shared.setPopoverVisible(false)
         ThermalManager.shared.setPopoverVisible(false)
         BatteryManager.shared.setPopoverVisible(false)
+        ShortcutStore.shared.cancelRecording()
     }
 }
 
