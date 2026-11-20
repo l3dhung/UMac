@@ -1,6 +1,6 @@
 # ⚡ UMac — Tiện Ích Tất-Cả-Trong-Một Cho Mac (Apple Silicon & Intel)
 
-[![Version](https://img.shields.io/badge/version-v1.0.2-blue.svg)](https://github.com/l3dhung/UMac/releases/latest)
+[![Version](https://img.shields.io/badge/version-v1.0.3-blue.svg)](https://github.com/l3dhung/UMac/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-black.svg)](https://github.com/l3dhung/UMac)
 [![Chip](https://img.shields.io/badge/chip-Apple%20Silicon%20%7C%20Intel-brightgreen.svg)](https://github.com/l3dhung/UMac)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
@@ -19,7 +19,7 @@
 
 Bấm vào nút bên dưới để tải về phiên bản mới nhất:
 
-[![Download UMac](<https://img.shields.io/badge/📥_TẢI_VỀ-UMac.zip_(v1.0.2)-2563EB?style=for-the-badge&logo=apple&logoColor=white>)](https://github.com/l3dhung/UMac/releases/latest/download/UMac.zip)
+[![Download UMac](<https://img.shields.io/badge/📥_TẢI_VỀ-UMac.zip_(v1.0.3)-2563EB?style=for-the-badge&logo=apple&logoColor=white>)](https://github.com/l3dhung/UMac/releases/latest/download/UMac.zip)
 
 _(Hoặc vào trang [GitHub Releases](https://github.com/l3dhung/UMac/releases) để xem danh sách tất cả các bản phát hành)._
 
@@ -239,6 +239,14 @@ cd UMac
 ---
 
 ## 📝 Nhật Ký Phiên Bản (Changelog)
+
+### [v1.0.3] — 2026-11-20
+
+- ⚙️ **Tab Cài đặt** (thay cho tab Phím tắt) với thẻ *Chung*: bật **Mở cùng máy** bằng một công tắc.
+- ⌨️ **Tự đổi phím tắt:** chia cửa sổ (thêm *Nửa trên*, *Nửa dưới*), chuyển màn hình, mở Clipboard. Bấm vào ô phím rồi nhấn tổ hợp mới; có nút khôi phục mặc định. Chọn phím mở bảng chuyển cửa sổ: ⌘Tab + ⌥Tab, chỉ ⌥Tab (giữ ⌘Tab của macOS) hoặc chỉ ⌘Tab.
+- 🔔 **Thông báo mang tên và icon UMac** thay cho Script Editor. Tin thường không phát âm thanh; báo cáo hao pin khi mở nắp chỉ hiện khi hao từ 3%.
+- ⚠️ **Đổi phím mặc định:** chuyển cửa sổ sang màn hình khác giờ là `⌃⌥⌘←/→` (vì `⌥⌘←/→` là phím chuyển tab của trình duyệt); Clipboard chỉ mở bằng `⌘⇧C` (để `⌘⇧V` cho "Dán và khớp kiểu"). Có thể gán lại trong tab Cài đặt.
+- 🐞 Công tắc *Chia cửa sổ* giờ tắt được phím tắt thật; bộ tự cập nhật không còn báo bản mới trước khi file tải về sẵn sàng.
 
 ### [v1.0.2] — 2026-11-20
 

@@ -1,7 +1,7 @@
 # AGENTS.md — UMac
 
 > Tài liệu cho AI coding agent và người đóng góp, đọc trước khi sửa dự án.
-> Cập nhật: **2026-11-20 (v1.0.2)**.
+> Cập nhật: **2026-11-20 (v1.0.3)**.
 
 ## 1. Tổng quan
 
