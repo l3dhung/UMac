@@ -100,7 +100,7 @@ swift build -c release   # chỉ biên dịch
 - `sample()` và `reset()` của `DiskSpeedSampler` đều chạy trên cùng serial queue.
 
 ### Bộ tự cập nhật
-- Nguồn: GitHub Releases của `l3dhung/UMac`, dự phòng `version.json` trên `main`.
+- Nguồn chuẩn: GitHub Releases của `l3dhung/UMac` (chỉ release đã đăng mới có file để tải). `version.json` trên `main` chỉ dùng khi API lỗi, và chỉ khi HEAD tới file tải về trả 200 — vì `version.json` đổi ngay khi đẩy code, trước khi CI build xong.
 - Bản tải về phải thoả Designated Requirement của app đang chạy (`SecStaticCodeCheckValidity`: cùng bundle ID + cùng chứng chỉ). Bản build ad-hoc không tự cập nhật — chủ ý.
 - File tạm trong `FileManager.temporaryDirectory/UMacUpdate` (quyền 700).
 
@@ -141,4 +141,4 @@ Khuyến nghị bảo mật repo: environment `release` có required reviewer gi
 5. Tab Phần cứng: % và sức khỏe pin hợp lý; thẻ nhiệt độ có số liệu (Intel: log `IntelSMCReader: … cảm biến nhiệt`).
 6. Bật "Chép file", chạy `dd if=/dev/zero of=/tmp/dstest.bin bs=1m count=600` ⇒ thấy tốc độ ghi; xoá file sau khi thử.
 
-Máy đã kiểm thử: MacBook Pro 13" 2018 (Intel i5-8259U, macOS 15). Phần Apple Silicon (helper khóa sạc, cảm biến HID) chưa được kiểm thử lại sau khi fork.
+Máy đã kiểm thử: MacBook Pro 13" 2018 (Intel i5-8259U, macOS 15) và MacBook Pro 14" M1 Pro (macOS 26.6): helper khóa sạc đọc `CHTE` đúng, cảm biến HID hoạt động.

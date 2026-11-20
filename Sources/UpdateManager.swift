@@ -131,8 +131,6 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
 
         Task {
             var lastStatusCode: Int = 0
-            // Kết quả "đã mới nhất" từ GitHub API, dùng dự phòng nếu manifest lỗi.
-            var apiUpToDate: (ver: String, notes: String, dl: URL?, html: URL?)? = nil
 
             // Attempt 1: Standard GitHub Releases API
             let releaseUrl = URL(string: "https://api.github.com/repos/l3dhung/UMac/releases/latest")!
@@ -159,20 +157,17 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
                         })
                         let dlUrl = zipAsset.flatMap { URL(string: $0.browserDownloadUrl) }
 
-                        if Self.isVersion(tagVer, greaterThan: Self.currentVersion) {
-                            self.handleDiscoveredVersion(
-                                latestVer: tagVer,
-                                notes: notes,
-                                downloadUrl: dlUrl,
-                                htmlUrl: releasePage,
-                                silent: silent
-                            )
-                            return
-                        }
-
-                        // Release mới nhất chưa cao hơn bản đang chạy: vẫn thử manifest
-                        // để không bỏ lỡ trường hợp release tạo chậm hơn / thiếu asset.
-                        apiUpToDate = (tagVer, notes, dlUrl, releasePage)
+                        // GitHub Releases là nguồn chuẩn: chỉ release đã đăng mới có file để tải.
+                        // Không hỏi tiếp version.json, vì file đó đổi ngay khi đẩy code — trước
+                        // khi CI build xong — nên sẽ báo bản mới mà tải về bị 404.
+                        self.handleDiscoveredVersion(
+                            latestVer: tagVer,
+                            notes: notes,
+                            downloadUrl: dlUrl,
+                            htmlUrl: releasePage,
+                            silent: silent
+                        )
+                        return
                     }
                 }
             } catch {
@@ -197,6 +192,21 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
                         let pageUrl = manifest.htmlUrl.flatMap { URL(string: $0) } ?? URL(string: "https://github.com/l3dhung/UMac/releases")
                         let notes = manifest.notes ?? manifest.name ?? "Bản cập nhật mới dành cho UMac."
 
+                        // Dự phòng khi API lỗi (mạng, giới hạn tần suất): chỉ tin manifest nếu
+                        // file tải về đã thật sự có trên GitHub.
+                        let isNewer = Self.isVersion(manifest.version, greaterThan: Self.currentVersion)
+                        if isNewer, !(await Self.isDownloadAvailable(dlUrl)) {
+                            appLog("ℹ️ UpdateManager: manifest báo \(manifest.version) nhưng chưa có file tải về — bỏ qua.")
+                            self.handleDiscoveredVersion(
+                                latestVer: Self.currentVersion,
+                                notes: "",
+                                downloadUrl: nil,
+                                htmlUrl: pageUrl,
+                                silent: silent
+                            )
+                            return
+                        }
+
                         self.handleDiscoveredVersion(
                             latestVer: manifest.version,
                             notes: notes,
@@ -209,18 +219,6 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
                 }
             } catch {
                 appLog("⚠️ Raw manifest check failed: \(error.localizedDescription)")
-            }
-
-            // Manifest không dùng được nhưng API nói đã mới nhất → báo đã mới nhất.
-            if let api = apiUpToDate {
-                self.handleDiscoveredVersion(
-                    latestVer: api.ver,
-                    notes: api.notes,
-                    downloadUrl: api.dl,
-                    htmlUrl: api.html,
-                    silent: silent
-                )
-                return
             }
 
             // If both failed
@@ -417,6 +415,17 @@ public class UpdateManager: NSObject, ObservableObject, URLSessionDownloadDelega
                 self?.performInPlaceUpdate(stagedAppPath: appPath, zipPath: zipPath)
             }
         }
+    }
+
+    /// HEAD tới file tải về (GitHub chuyển hướng sang CDN; URLSession tự theo).
+    nonisolated static func isDownloadAvailable(_ url: URL?) async -> Bool {
+        guard let url else { return false }
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 8.0
+        guard let (_, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse else { return false }
+        return http.statusCode == 200
     }
 
     // MARK: - Signature Check
